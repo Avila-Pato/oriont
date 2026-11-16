@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f0e6;
+  --background: #F8F9F9;
   --foreground: #21255c;
+  /* ancho máximo del contenido de todas las secciones */
+  --container: 1600px;
+}
+
+
+
+
+
+/* Contenedor general: centra el contenido de cada sección con un ancho fijo.
+   Uso: <div className="container-page"> ... </div> */
+@utility container-page {
+  width: 100%;
+  max-width: calc(var(--container) + 2 * 1rem);
+  margin-inline: auto;
+  padding-inline: 1rem;
+
+  @media (width >= 48rem) {
+    max-width: calc(var(--container) + 2 * 1rem);
+    padding-inline: 2rem;
+  }
 }
 
 @theme inline {
@@ -11,6 +31,45 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-space-grotesk);
+}
+
+@theme {
+  /* resorte amortiguado (pasa ~16 % y se asienta): clase `ease-spring` */
+  --ease-spring: linear(0, 0.08, 0.271, 0.503, 0.729, 0.915, 1.049, 1.129, 1.161, 1.158, 1.132, 1.095, 1.057, 1.024, 0.999, 0.983, 0.975, 0.974, 0.977, 0.982, 0.988, 0.994, 0.999, 1.002, 1.004, 1.004, 1.004, 1.003, 1.002, 1.001, 1);
+
+  /* ícono "agita el celular": sacudida corta y pausa. Clases `animate-phone-shake` (el celular)
+     y `animate-shake-waves` (las ondas a los lados, sincronizadas). Solo transform/opacity. */
+  --animate-phone-shake: phone-shake 2.2s ease-in-out infinite;
+  @keyframes phone-shake {
+    0%, 40%, 100% { transform: rotate(0deg); }
+    5% { transform: rotate(-16deg); }
+    10% { transform: rotate(14deg); }
+    15% { transform: rotate(-12deg); }
+    20% { transform: rotate(10deg); }
+    25% { transform: rotate(-6deg); }
+    30% { transform: rotate(4deg); }
+  }
+  --animate-shake-waves: shake-waves 2.2s ease-out infinite;
+  @keyframes shake-waves {
+    0%, 45%, 100% { opacity: 0; transform: scale(0.85); }
+    8%, 28% { opacity: 1; transform: scale(1); }
+  }
+
+  /* línea de escaneo del placeholder del globo (sube y baja mientras carga el JS).
+     Clase `animate-globe-scan`. Solo transform: no provoca reflow. */
+  --animate-globe-scan: globe-scan 1.8s ease-in-out infinite alternate;
+  @keyframes globe-scan {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0%); }
+  }
+
+  /* pulso que corre por la línea de un sponsor hasta Oriont (SponsorNetwork). El trazo tiene
+     pathLength=1: el tramo entra por el logo y sale por el nodo central. Solo pinta, sin reflow. */
+  --animate-net-pulse: net-pulse 1s cubic-bezier(0.45, 0, 0.55, 1) both;
+  @keyframes net-pulse {
+    from { stroke-dashoffset: 0.14; opacity: 1; }
+    to { stroke-dashoffset: -1; opacity: 1; }
+  }
 }
 
 html,
@@ -24,38 +83,15 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-.dot-grid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 22px 22px;
-}
-
-.text-gradient {
-  background: linear-gradient(90deg, #a78bfa 0%, #8fcbef 55%, #3aa0b8 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-12px);
-  }
-}
-
-.float-slow {
-  animation: float 7s ease-in-out infinite;
-}
-.float-fast {
-  animation: float 5s ease-in-out infinite;
-}
-
+/* "reducir movimiento": sin animaciones CSS infinitas ni transiciones largas
+   (el globo y GSAP ya lo respetan por su cuenta) */
 @media (prefers-reduced-motion: reduce) {
-  .float-slow,
-  .float-fast {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

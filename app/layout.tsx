@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import "lenis/dist/lenis.css";
 import "./globals.css";
-
+import SmoothScroll from "@/components/layout/SmoothScroll";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -23,13 +24,17 @@ export const metadata: Metadata = {
     "Servicios, productos y tecnología para bancaseguros y telecomunicaciones. Conectamos al sponsor con el cliente final.",
 };
 
+
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* suppressHydrationWarning: extensiones (ej. ColorZilla) agregan atributos al body */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <SmoothScroll>{children}</SmoothScroll>      </body>
     </html>
   );
 }
