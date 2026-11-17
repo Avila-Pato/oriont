@@ -16,7 +16,8 @@ gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
  * logos de la grilla (SponsorGrid) entran una vez en ola.
  * Solo transform/opacity (sin CLS). El contenido llega renderizado desde el servidor como children;
  * aquí solo se anima, buscando por data-atributos:
- *   [data-reveal-line]  [data-reveal-title]  [data-reveal-text]  [data-logo-cell]  [data-net-line]
+ *   [data-reveal-line]  [data-reveal-title]  [data-reveal-text]  [data-logo-cell]
+ * (el dibujo de los arcos en escritorio lo anima SponsorCircuit por su cuenta)
  */
 export default function SponsorsReveal({ id, className, children }: { id?: string; className?: string; children: ReactNode }) {
   const scope = useRef<HTMLElement>(null);
@@ -56,17 +57,6 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
           scrollTrigger: { trigger: "[data-logo-cell]", start: "top 85%", once: true },
         });
 
-        // red (escritorio): las líneas se dibujan desde cada logo hacia Oriont
-        gsap.from("[data-net-line]", {
-          strokeDasharray: 1,
-          strokeDashoffset: 1,
-          duration: 1.2,
-          ease: "power2.inOut",
-          stagger: { each: 0.03, from: "random" },
-          scrollTrigger: { trigger: "[data-net-line]", start: "top 85%", once: true },
-          clearProps: "strokeDasharray,strokeDashoffset",
-        });
-
         return () => split.revert();
       });
     },
@@ -74,7 +64,10 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
   );
 
   return (
-    <section ref={scope} id={id} className={className}>
+    // data-near: la sección está a una pantalla de distancia. Recién ahí SponsorLogo aplica su
+    // máscara de color (mask-image con la URL del logo): las máscaras CSS no tienen carga
+    // diferida y, sin esto, los 23 logos (~340 KB) se bajaban y decodificaban al cargar la página
+    <section ref={scope} id={id} className={className} data-near={near || undefined}>
       {children}
     </section>
   );

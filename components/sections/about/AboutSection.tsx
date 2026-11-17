@@ -7,8 +7,9 @@ import { useGSAP } from "@gsap/react";
 import { useNearViewport } from "@/hooks/useNearViewport";
 import { ABOUT_COPY, ABOUT_CTA, TEAM_CARDS } from "@/data/about";
 import Image from "next/image";
+import imgOficinaHd from "@/public/oriont/oficina-sala-reunion-hd.webp";
 import CircleBottom from "./parts/CircleBottom";
-import ContactForm from "./parts/ContactForm";
+import ContactForm from "@/components/contact/ContactForm";
 import ShakeTeamGrid from "./parts/ShakeTeamGrid";
 import TeamCard from "./parts/TeamCard";
 
@@ -228,7 +229,7 @@ export default function AboutSection() {
               // arranca antes de que la sección quede fija: al llegar ya se está moviendo
               start: "top 20%",
               end: "bottom bottom",
-              scrub: 1, // suavidad respecto a a la rueda
+              scrub: 0.5, // suavidad respecto a a la rueda
               invalidateOnRefresh: true,
             },
           })
@@ -286,7 +287,7 @@ export default function AboutSection() {
             "[data-expand-content] > *",
             { autoAlpha: 0, y: 50 },
             { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.1 },
-            "expand+=0.7",
+            "expand+=0.4", // velocidad en la que aparece 
           )
           .to({}, { duration: 0.15 }); // pausa con el formulario antes de soltar el pin
 
@@ -357,12 +358,14 @@ export default function AboutSection() {
             data-stage-arrow
             aria-label="Seguir bajando"
             onClick={() => window.scrollBy({ top: window.innerHeight * 1.2, behavior: "smooth" })}
-            className="invisible flex flex-col items-center gap-6 text-[#21255c]/60 opacity-0 transition-colors hover:text-[#248caa]"
+            // se nota por el color (celeste de la marca) y no por el tamaño: mismo diseño del
+            // original, con círculo blanco y sombra leve; al pasar el mouse, azul oscuro
+            className="group invisible flex cursor-pointer flex-col items-center gap-5 text-[#248caa] opacity-0 transition-colors hover:text-[#21255c]"
           >
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] 2xl:text-[12px]">Scroll</span>
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] 2xl:text-[12px]">Scroll</span>
 
-            <span className="grid h-12 w-12 animate-bounce place-items-center rounded-full border border-current 2xl:h-12 2xl:w-12">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <span className="grid h-12 w-12 animate-bounce place-items-center rounded-full border-[1.5px] border-current bg-white shadow-[0_8px_20px_-10px_rgba(33,37,92,0.35)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M12 5v14" />
                 <path d="m6 13 6 6 6-6" />
               </svg>
@@ -377,10 +380,13 @@ export default function AboutSection() {
         <div ref={expandImg} className="absolute inset-0">
           <ExpandSlides playing={slidesOn} />
         </div>
-        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-[#21255c]/95 via-[#21255c]/80 to-[#21255c]/45" />
+        {/* Velo y contenido parten ocultos por CSS (como CtaText): si solo los ocultaba GSAP, al
+            recalcular ScrollTrigger (invalidateOnRefresh, resize, carga de fuentes) revertía los
+            estilos y el formulario quedaba visible antes de tiempo, y luego "aparecía" otra vez. */}
+        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-[#21255c]/95 via-[#21255c]/80 to-[#21255c]/45 opacity-0" />
         <div
           data-expand-content
-          className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 xl:gap-20 2xl:gap-28"
+          className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0"
         >
           <ContactIntro />
           <ContactForm className="max-w-[640px] justify-self-end 2xl:max-w-[760px]" />
@@ -405,7 +411,9 @@ export default function AboutSection() {
 }
 
 /** Fotos del fondo a pantalla completa: parte con la destacada (la que se abrió) y sigue con el resto. */
-const SLIDES = [TEAM_CARDS[EXPAND], ...TEAM_CARDS.filter((_, i) => i !== EXPAND)];
+// la destacada usa una versión agrandada a 2560 px con nitidez (la original mide 1566 px y a
+// pantalla completa se estiraba); misma proporción, así el cálculo de IMG_AR sigue valiendo
+const SLIDES = [{ ...TEAM_CARDS[EXPAND], src: imgOficinaHd }, ...TEAM_CARDS.filter((_, i) => i !== EXPAND)];
 const SLIDE_MS = 4500;
 
 /**
@@ -461,6 +469,8 @@ function ExpandSlides({ playing }: { playing: boolean }) {
         alt=""
         fill
         sizes="100vw"
+        // la primera (la foto que se abre a pantalla completa) con más calidad que el 75 por defecto
+        quality={i === 0 ? 100 : undefined}
         className="object-cover transition-opacity duration-[1200ms] ease-out"
         style={{ zIndex: role, opacity: role === 0 ? 0 : 1, objectPosition: s.position }}
       />

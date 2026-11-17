@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Image, { type StaticImageData } from "next/image";
 
 /**
@@ -41,15 +42,20 @@ export default function SponsorLogo({ name, logo, color, colorLogo, sizes }: Pro
           className="absolute inset-0 size-full opacity-0 transition-opacity duration-500 select-none group-hover:opacity-100 group-hover:duration-300 group-data-on:opacity-100"
         />
       ) : (
+        // la máscara solo se aplica con la sección cerca de la pantalla ([data-near] lo pone
+        // SponsorsReveal): así el logo no se descarga al cargar la página. Sin máscara queda
+        // invisible (`invisible`), no como un rectángulo de color
         <span
           aria-hidden
-          className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:duration-300 group-data-on:opacity-100"
-          style={{
-            background: color,
-            maskImage: `url(${logo.src})`,
-            maskSize: "100% 100%",
-            maskRepeat: "no-repeat",
-          }}
+          className="invisible absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:duration-300 group-data-on:opacity-100 [[data-near]_&]:visible [[data-near]_&]:mask-(--logo-mask)"
+          style={
+            {
+              "--logo-mask": `url(${logo.src})`,
+              background: color,
+              maskSize: "100% 100%",
+              maskRepeat: "no-repeat",
+            } as CSSProperties
+          }
         />
       )}
     </span>

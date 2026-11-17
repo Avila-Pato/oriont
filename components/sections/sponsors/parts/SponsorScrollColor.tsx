@@ -44,8 +44,16 @@ export default function SponsorScrollColor() {
         cells = cellsOf(g);
         prev = -1;
       }
-      // al azar, sin repetir el anterior ni uno que ya está encendido
-      const free = cells.map((_, i) => i).filter((i) => i !== prev && !cells[i].hasAttribute("data-on"));
+      // al azar, sin repetir el anterior ni uno que ya está encendido; en la cinta del celular,
+      // solo los que están dentro de la pantalla (el resto va pasando fuera de vista)
+      const vw = window.innerWidth;
+      const inView = (c: HTMLElement) => {
+        const r = c.getBoundingClientRect();
+        return r.left >= 0 && r.right <= vw;
+      };
+      const free = cells
+        .map((_, i) => i)
+        .filter((i) => i !== prev && !cells[i].hasAttribute("data-on") && inView(cells[i]));
       if (!free.length) return;
       const i = free[Math.floor(Math.random() * free.length)];
       prev = i;

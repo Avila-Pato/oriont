@@ -1,87 +1,421 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent, type FocusEvent, useRef, useEffect } from "react";
 import { ABOUT_CTA, CONTACT_FORM } from "@/data/about";
+import { useNearViewport } from "@/hooks/useNearViewport";
+import { CONTACT_ENDPOINT, TURNSTILE_SITE_KEY } from "./config";
+import {
+  ADMIN_TEMPLATE,
+  MAIL_ADMIN_TO,
+  MAIL_FROM_ALIAS,
+  MAIL_PROVIDER,
+  USER_TEMPLATE,
+  escapeHtml,
+  toBase64,
+} from "./emails";
+import { loadTurnstile } from "./turnstile";
 
 /**
- * Formulario de contacto. Aún no hay backend: al enviar abre el correo del usuario
- * con los datos ya escritos, dirigido a la casilla de contacto.
- * TODO: conectar a un endpoint (Route Handler / servicio de formularios) cuando exista.
+ * Formulario de contacto. Envía JSON a la Azure Function (CONTACT_ENDPOINT) con el token de
+ * Cloudflare Turnstile; la Function valida el token con su secret key antes de mandar el correo.
+ *
+ * Turnstile se carga recién cuando el formulario se acerca a la pantalla (IntersectionObserver):
+ * no pesa en la carga inicial, y las copias ocultas (display:none) nunca cargan ni resuelven reto.
+ * El espacio del widget (65 px) queda reservado para que al aparecer no mueva nada.
+ *
+ * Validación propia (noValidate): mensajes en español bajo cada campo, al salir del campo
+ * (si ya se escribió algo) y al enviar (todos). El primero con error recibe el foco.
  */
+
+type Name = "nombre" | "empresa" | "correo" | "telefono" | "mensaje";
+type Status = "idle" | "captcha" | "sending" | "sent" | "error";
+
+type Field = {
+  name: Name;
+  label: string;
+  placeholder: string;
+  required: boolean;
+  type: "text" | "email" | "tel" | "textarea";
+  autoComplete?: string;
+  inputMode?: "text" | "email" | "tel";
+  maxLength: number;
+  /** ocupa las dos columnas */
+  wide?: boolean;
+  /** mensaje de error, o null si el valor está bien (ya viene sin espacios a los lados) */
+  validate: (v: string) => string | null;
+};
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// teléfono: dígitos, espacios, +, guiones y paréntesis; entre 8 y 15 dígitos
+const phoneDigits = (v: string) => v.replace(/\D/g, "").length;
+
+const FIELDS: Field[] = [
+  {
+    name: "nombre",
+    label: "Nombre",
+    placeholder: "Tu nombre",
+    required: true,
+    type: "text",
+    autoComplete: "name",
+    maxLength: 80,
+    validate: (v) => (!v ? "Escribe tu nombre." : v.length < 2 ? "El nombre es muy corto." : null),
+  },
+  {
+    name: "empresa",
+    label: "Empresa",
+    placeholder: "Nombre de tu empresa",
+    required: false,
+    type: "text",
+    autoComplete: "organization",
+    maxLength: 100,
+    validate: () => null,
+  },
+  {
+    name: "correo",
+    label: "Correo",
+    placeholder: "tu@empresa.cl",
+    required: true,
+    type: "email",
+    autoComplete: "email",
+    inputMode: "email",
+    maxLength: 120,
+    validate: (v) => (!v ? "Escribe tu correo." : !EMAIL.test(v) ? "Revisa el correo, por ejemplo: nombre@empresa.cl" : null),
+  },
+  {
+    name: "telefono",
+    label: "Teléfono",
+    placeholder: "+56 9 1234 5678",
+    required: false,
+    type: "tel",
+    autoComplete: "tel",
+    inputMode: "tel",
+    maxLength: 20,
+    validate: (v) =>
+      !v
+        ? null
+        : !/^[+\d\s()-]+$/.test(v)
+          ? "Usa solo números, espacios y el signo +."
+          : phoneDigits(v) < 8 || phoneDigits(v) > 15
+            ? "Revisa el número, por ejemplo: +56 9 1234 5678"
+            : null,
+  },
+  {
+    name: "mensaje",
+    label: "Mensaje",
+    placeholder: "Cuéntanos qué desafío quieres resolver",
+    required: true,
+    type: "textarea",
+    maxLength: 1000,
+    wide: true,
+    validate: (v) =>
+      !v ? "Cuéntanos en qué te podemos ayudar." : v.length < 10 ? "Escribe un poco más (mínimo 10 caracteres)." : null,
+  },
+];
+
+/** ancho mínimo del widget Turnstile en tamaño "flexible" (px) */
+const TURNSTILE_MIN_W = 300;
+
 export default function ContactForm({ className = "" }: { className?: string }) {
   const id = useId();
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+  const [errors, setErrors] = useState<Partial<Record<Name, string>>>({});
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const get = (k: string) => String(data.get(k) ?? "").trim();
-    const body = [
-      `Nombre: ${get("nombre")}`,
-      `Empresa: ${get("empresa")}`,
-      `Correo: ${get("correo")}`,
-      `Teléfono: ${get("telefono")}`,
-      "",
-      get("mensaje"),
-    ].join("\n");
-    const subject = `Contacto web — ${get("nombre")}${get("empresa") ? ` (${get("empresa")})` : ""}`;
-    window.location.href = `mailto:${CONTACT_FORM.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+  // `_ts` anti-spam: momento en que se montó el formulario (la Function rechaza envíos en < 3 s)
+  const loadTime = useRef(0);
+  // Turnstile: contenedor del widget, id del widget dibujado y último token válido
+  const boxRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<string | null>(null);
+  const tokenRef = useRef<string | null>(null);
+  const [captchaFailed, setCaptchaFailed] = useState(false);
+  // Turnstile "flexible" mide mínimo 300 px de ancho: en celulares el formulario queda más angosto
+  // (drawer y Nosotros dejan ~260-290 px) y el widget se salía por la derecha. Ahí va "compact"
+  // (150 × 140 px), que cabe siempre.
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    loadTime.current = Date.now();
+  }, []);
+
+  // Turnstile (script + widget) recién cuando el formulario se acerca a pantalla. En el drawer
+  // cerrado (display: none) el elemento no intersecta, así que tampoco carga hasta abrirlo.
+  const near = useNearViewport(boxRef, "200px");
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!near || !el || !TURNSTILE_SITE_KEY) return;
+    let cancelled = false;
+
+    // se mide recién aquí: en el drawer cerrado (display: none) el ancho al montar es 0
+    const small = el.clientWidth < TURNSTILE_MIN_W;
+    setCompact(small);
+    loadTurnstile()
+      .then((ts) => {
+        if (cancelled) return;
+        widgetRef.current = ts.render(el, {
+          sitekey: TURNSTILE_SITE_KEY,
+          language: "es",
+          theme: "light",
+          size: small ? "compact" : "flexible",
+          callback: (token: string) => {
+            tokenRef.current = token;
+            setCaptchaFailed(false);
+            setStatus((s) => (s === "captcha" ? "idle" : s));
+          },
+          "expired-callback": () => {
+            tokenRef.current = null;
+          },
+          "error-callback": () => {
+            tokenRef.current = null;
+          },
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setCaptchaFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (widgetRef.current) window.turnstile?.remove(widgetRef.current);
+      widgetRef.current = null;
+      tokenRef.current = null;
+    };
+  }, [near]);
+
+  const check = (name: Name, value: string) => {
+    const f = FIELDS.find((x) => x.name === name)!;
+    const msg = f.validate(value.trim());
+    setErrors((e) => (e[name] === (msg ?? undefined) ? e : { ...e, [name]: msg ?? undefined }));
+    return msg;
   };
 
-  const field =
-    "w-full rounded-xl border border-[#21255c]/12 bg-[#f8f9f9] px-4 py-3 text-[14px] text-[#21255c] outline-none transition placeholder:text-[#21255c]/35 focus:border-[#248caa] focus:bg-white focus:ring-4 focus:ring-[#248caa]/15 2xl:py-3.5 2xl:text-[16px]";
-  const label = "mb-1.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-[#21255c]/55 2xl:text-[11px]";
+  // al salir del campo: solo si ya escribió algo (no regañar por pasar con Tab sin escribir)
+  const onBlur = (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.currentTarget;
+    if (value.trim() || errors[name as Name]) check(name as Name, value);
+  };
+  // mientras corrige: el error desaparece apenas el valor queda bien
+  const onInput = (e: FormEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.currentTarget;
+    if (errors[name as Name]) check(name as Name, value);
+  };
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (status === "sending") return;
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const get = (k: Name) => String(data.get(k) ?? "").trim();
+
+    // validar todo; el primero con error recibe el foco
+    const next: Partial<Record<Name, string>> = {};
+    for (const f of FIELDS) {
+      const msg = f.validate(get(f.name));
+      if (msg) next[f.name] = msg;
+    }
+    setErrors(next);
+    const first = FIELDS.find((f) => next[f.name]);
+    if (first) {
+      form.querySelector<HTMLElement>(`[name="${first.name}"]`)?.focus();
+      setStatus("idle");
+      return;
+    }
+
+    const token = tokenRef.current;
+    if (!CONTACT_ENDPOINT) {
+      setStatus("error");
+      return;
+    }
+    if (!token) {
+      setStatus("captcha");
+      return;
+    }
+
+    // valores escapados: la Function inserta los placeholders tal cual en el HTML
+    const ph = {
+      nombre: escapeHtml(get("nombre")),
+      empresa: escapeHtml(get("empresa") || "-"),
+      correo: escapeHtml(get("correo")),
+      telefono: escapeHtml(get("telefono") || "-"),
+      mensaje: escapeHtml(get("mensaje")),
+    };
+    const userPayload = {
+      templateB64: toBase64(USER_TEMPLATE),
+      subject: "Recibimos tu mensaje — Oriont",
+      to: [get("correo")],
+      fromAlias: MAIL_FROM_ALIAS,
+      provider: MAIL_PROVIDER,
+      placeholders: ph,
+    };
+    const adminPayload = {
+      templateB64: toBase64(ADMIN_TEMPLATE),
+      subject: `Contacto web — ${get("nombre")}${get("empresa") ? ` (${get("empresa")})` : ""}`,
+      to: [MAIL_ADMIN_TO],
+      fromAlias: MAIL_FROM_ALIAS,
+      provider: MAIL_PROVIDER,
+      placeholders: ph,
+    };
+
+    setStatus("sending");
+    try {
+      const res = await fetch(CONTACT_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          turnstileToken: token,
+          _hp: String(data.get("_hp") ?? ""),
+          _ts: String(loadTime.current),
+          messages: [userPayload, adminPayload],
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      form.reset();
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    } finally {
+      // cada token sirve una sola vez: pedir uno nuevo para el próximo envío
+      tokenRef.current = null;
+      if (widgetRef.current) window.turnstile?.reset(widgetRef.current);
+    }
+  };
+
+  const errorCount = Object.values(errors).filter(Boolean).length;
+  const email = ABOUT_CTA.contact[1].value;
+  const statusText = errorCount
+    ? errorCount === 1
+      ? "Falta completar o corregir 1 campo."
+      : `Faltan completar o corregir ${errorCount} campos.`
+    : {
+        idle: `También puedes escribirnos a ${email}`,
+        captcha: "Completa la verificación de seguridad antes de enviar.",
+        sending: "Enviando tu mensaje…",
+        sent: "¡Gracias! Recibimos tu mensaje y te responderemos pronto.",
+        error: `No pudimos enviar el mensaje. Intenta de nuevo o escríbenos a ${email}.`,
+      }[status];
+  const statusBad = errorCount > 0 || status === "captcha" || status === "error";
+
+  // Campo con etiqueta flotante: `peer` para que la etiqueta (que va DESPUÉS en el DOM) sepa si el
+  // campo tiene foco o texto. El ejemplo (placeholder) solo se ve con foco, para no chocar con la
+  // etiqueta. El autocompletado del navegador pinta el campo de azul: se tapa con sombra interna.
+  const field = (bad: boolean) =>
+    `peer w-full rounded-xl border bg-white px-4 py-3 text-[14px] text-[#21255c] outline-none transition placeholder:text-transparent focus:ring-4 focus:placeholder:text-[#21255c]/35 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#21255c] 2xl:py-3.5 2xl:text-[16px] ${
+      bad
+        ? "border-[#c2410c]/70 focus:border-[#c2410c] focus:ring-[#c2410c]/15"
+        : "border-[#21255c]/15 hover:border-[#21255c]/30 focus:border-[#248caa] focus:ring-[#248caa]/15"
+    }`;
+  // Etiqueta: en reposo, dentro del campo a la altura del texto; con foco o texto escrito sube y
+  // se posa sobre el borde de arriba (fondo blanco que corta la línea), más chica y en color.
+  // Se anima `top` de un elemento absoluto: no mueve nada más de la página.
+  const label = (bad: boolean) =>
+    `pointer-events-none absolute left-3 top-[22px] flex -translate-y-1/2 items-center gap-1 bg-white px-1 text-[14px] leading-none transition-all duration-200 ease-out 2xl:top-[26px] 2xl:text-[16px]
+     peer-focus:top-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] 2xl:peer-focus:top-0 2xl:peer-focus:text-[12px] 2xl:peer-[:not(:placeholder-shown)]:top-0 2xl:peer-[:not(:placeholder-shown)]:text-[12px] ${
+       bad ? "text-[#c2410c]" : "text-[#21255c]/50 peer-focus:text-[#248caa]"
+     }`;
 
   return (
     <form
       onSubmit={onSubmit}
+      noValidate
       className={`w-full rounded-3xl bg-white p-6 text-left shadow-[0_40px_80px_-30px_rgba(0,0,0,0.45)] sm:p-8 2xl:p-10 ${className}`}
     >
       <p className="font-display text-[22px] font-semibold leading-tight text-[#21255c] 2xl:text-[28px]">
         {CONTACT_FORM.title}
       </p>
       <p className="mt-1.5 text-[14px] text-[#21255c]/60 2xl:text-[16px]">{CONTACT_FORM.text}</p>
+      <p className="mt-1 text-[12px] text-[#21255c]/45">
+        Los campos con <span className="text-[#248caa]">*</span> son obligatorios.
+      </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:gap-5">
-        <div>
-          <label htmlFor={`${id}-nombre`} className={label}>Nombre</label>
-          <input id={`${id}-nombre`} name="nombre" required autoComplete="name" placeholder="Tu nombre" className={field} />
-        </div>
-        <div>
-          <label htmlFor={`${id}-empresa`} className={label}>Empresa</label>
-          <input id={`${id}-empresa`} name="empresa" autoComplete="organization" placeholder="Nombre de tu empresa" className={field} />
-        </div>
-        <div>
-          <label htmlFor={`${id}-correo`} className={label}>Correo</label>
-          <input id={`${id}-correo`} name="correo" type="email" required autoComplete="email" placeholder="tu@empresa.cl" className={field} />
-        </div>
-        <div>
-          <label htmlFor={`${id}-telefono`} className={label}>Teléfono</label>
-          <input id={`${id}-telefono`} name="telefono" type="tel" autoComplete="tel" placeholder="+56 9 1234 5678" className={field} />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${id}-mensaje`} className={label}>Mensaje</label>
-          <textarea
-            id={`${id}-mensaje`}
-            name="mensaje"
-            required
-            rows={4}
-            placeholder="Cuéntanos qué desafío quieres resolver"
-            className={`${field} resize-none`}
-          />
-        </div>
+        {FIELDS.map((f) => {
+          const inputId = `${id}-${f.name}`;
+          const errId = `${inputId}-error`;
+          const err = errors[f.name];
+
+          // Elementos requeridos dentro del input tambien hace la animacion
+          const common = {
+            id: inputId,
+            name: f.name,
+            required: f.required,
+            maxLength: f.maxLength,
+            placeholder: f.placeholder,
+            autoComplete: f.autoComplete,
+            "aria-required": f.required,
+            "aria-invalid": err ? true : undefined,
+            "aria-describedby": err ? errId : undefined,
+            onBlur,
+            onInput,
+          };
+
+          return (
+            <div key={f.name} className={f.wide ? "sm:col-span-2" : undefined}>
+              {/* el campo va primero (peer) y la etiqueta después, encima, flotando */}
+              <div className="relative">
+                {f.type === "textarea" ? (
+                  // texto multilínea (mensaje): 4 filas de alto, sin tirador para no mover el layout
+                  <textarea {...common} rows={4} className={`${field(!!err)} resize-none`} />
+                ) : (
+                  // una sola línea: `type` valida el formato y `inputMode` elige el teclado en móvil
+                  <input {...common} type={f.type} inputMode={f.inputMode} className={field(!!err)} />
+                )}
+                <label htmlFor={inputId} className={label(!!err)}>
+                  {/* seccion del input texto */}
+                  {f.label}
+
+                  {/* elementos requeridos */}
+                  {f.required && (
+                    <span aria-hidden className="text-[#248caa]">*</span>
+                  )}
+
+                </label>
+              </div>
+              {/* alto reservado solo cuando hay error: aparece debajo sin mover lo de al lado */}
+              {err && (
+                <p id={errId} className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[#c2410c]">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5 shrink-0" aria-hidden>
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7.5v5.5M12 16.5v.01" />
+                  </svg>
+                  {err}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
+      {/* honeypot anti-spam: invisible para personas; si un bot lo llena, la Function descarta el envío */}
+      <div aria-hidden className="absolute left-[-9999px] h-px w-px overflow-hidden">
+        <input type="text" name="_hp" tabIndex={-1} autoComplete="off" defaultValue="" />
+      </div>
+
+      {/* widget de Cloudflare Turnstile: alto reservado (65 px; 140 px el compacto de celular) para
+          que al cargar no mueva el layout. El alto se fija al medir, ~200 px antes de verse */}
+      {TURNSTILE_SITE_KEY && (
+        <div className={`mt-5 ${compact ? "min-h-35" : "min-h-16.25"}`}>
+          <div ref={boxRef} />
+          {captchaFailed && (
+            <p className="text-[12px] text-[#c2410c]">
+              No se pudo cargar la verificación de seguridad. Recarga la página o escríbenos a {email}.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <p className="text-[12px] text-[#21255c]/50 2xl:text-[13px]">
-          {sent ? "¡Gracias! Se abrió tu correo para enviar el mensaje." : `También puedes escribirnos a ${ABOUT_CTA.contact[1].value}`}
+        {/* aria-live: el lector de pantalla anuncia el resultado al enviar */}
+        <p aria-live="polite" className={`text-[12px] 2xl:text-[13px] ${statusBad ? "text-[#c2410c]" : "text-[#21255c]/50"}`}>
+          {statusText}
         </p>
+
         <button
           type="submit"
-          className="group inline-flex items-center gap-2 rounded-full bg-[#21255c] py-2 pl-5 pr-2 text-[14px] font-medium text-[#f5f0e6] transition hover:bg-[#2c3175] 2xl:py-2.5 2xl:pl-6 2xl:text-[16px]"
+          disabled={status === "sending"}
+          aria-busy={status === "sending"}
+          className="group inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#21255c] py-2 pl-5 pr-2 text-[14px] font-medium text-[#f5f0e6] transition hover:bg-[#2c3175] disabled:cursor-wait disabled:opacity-70 2xl:py-2.5 2xl:pl-6 2xl:text-[16px]"
         >
-          Enviar mensaje
+          {status === "sending" ? "Enviando…" : "Enviar mensaje"}
           <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] transition group-hover:translate-x-0.5">→</span>
         </button>
       </div>

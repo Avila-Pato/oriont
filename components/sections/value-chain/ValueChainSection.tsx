@@ -16,7 +16,7 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
  * atrás asoman arriba). Al elegir del índice (o tocar una de atrás), la tarjeta sale hacia la
  * derecha, el mazo se reacomoda y vuelve por encima, al frente. Sin retener el scroll: la página
  * corre libre. Reacomodo con transiciones CSS de translate/scale/opacity (sin reflow).
- * Celular/tablet: tarjetas en lista.
+ * Celular/tablet: tarjetas en grilla de 2 columnas (la 01 a lo ancho).
  */
 
 const OFFSET = 36; // px que asoma cada tarjeta por encima de la siguiente
@@ -130,11 +130,13 @@ export default function ValueChainSection() {
         // generar layout shift) y cada tramo de scroll trae una carta desde abajo que se apila
         // sobre la anterior: 01 primero, 05 al final, al frente. Al subir se van en orden inverso.
         // GSAP anima `transform` de la envoltura, que se suma al `translate` del apilado sin pisarlo.
-        gsap.utils.toArray<HTMLElement>("[data-vc-mcard]").forEach((card) => {
+        gsap.utils.toArray<HTMLElement>("[data-vc-mcard]").forEach((card, i) => {
           gsap.from(card, {
             y: 40,
             autoAlpha: 0,
             duration: 0.7,
+            // grilla de 2 columnas (la 01 a lo ancho): la de la derecha de cada fila entra un poco después
+            delay: i > 0 && i % 2 === 0 ? 0.1 : 0,
             ease: "power3.out",
             scrollTrigger: { trigger: card, start: "top 85%", once: true },
           });
@@ -380,25 +382,36 @@ export default function ValueChainSection() {
           })}
         </div>
 
-        {/* celular/tablet: tarjetas en lista */}
-        <div className="space-y-6 lg:hidden">
+        {/* celular/tablet: grilla de 2 columnas; la 01 (sponsor, inicio de la cadena) va a lo
+            ancho. En celular las tarjetas son compactas (sin puntos ni etiquetas) */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:hidden">
           {steps.map((s, i) => {
             const t = THEME[s.theme];
+            const wide = i === 0;
             return (
-              <article key={s.title} data-vc-mcard className={`relative overflow-hidden rounded-3xl p-6 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] ${t.card}`}>
-                <div className="flex items-start justify-between">
-                  <span className={`grid h-12 w-12 place-items-center rounded-xl ${t.icon}`}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+              <article
+                key={s.title}
+                data-vc-mcard
+                className={`relative flex flex-col overflow-hidden rounded-2xl p-4 shadow-[0_20px_40px_-24px_rgba(33,37,92,0.45)] sm:rounded-3xl sm:p-6 ${
+                  wide ? "col-span-2" : ""
+                } ${t.card}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className={`grid h-10 w-10 place-items-center rounded-xl sm:h-12 sm:w-12 ${t.icon}`}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 sm:h-6 sm:w-6">
                       {ICONS[s.icon]}
                     </svg>
                   </span>
-                  <span className={`font-mono text-[11px] tracking-[0.2em] ${t.muted}`}>
-                    {pad(i)} / {pad(steps.length - 1)}
+                  <span className={`font-mono text-[10px] tracking-[0.2em] sm:text-[11px] ${t.muted}`}>
+                    {pad(i)}
+                    <span className={wide ? "" : "hidden sm:inline"}> / {pad(steps.length - 1)}</span>
                   </span>
                 </div>
-                <h3 className="mt-4 font-display text-[24px] font-semibold tracking-tight">{s.title}</h3>
-                <p className={`mt-2 text-[14px] leading-relaxed ${t.muted}`}>{s.text}</p>
-                <ul className="mt-4 space-y-2">
+                <h3 className={`mt-3 font-display font-semibold leading-tight tracking-tight sm:mt-4 sm:text-[24px] ${wide ? "text-[22px]" : "text-[16px]"}`}>
+                  {s.title}
+                </h3>
+                <p className={`mt-1.5 leading-relaxed sm:mt-2 sm:text-[14px] ${wide ? "text-[13.5px]" : "text-[12.5px]"} ${t.muted}`}>{s.text}</p>
+                <ul className="mt-4 hidden space-y-2 sm:block">
                   {s.points.map((p) => (
                     <li key={p} className="flex items-center gap-3 text-[13px] font-medium">
                       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-current/15 text-[11px]">✓</span>
@@ -406,7 +419,7 @@ export default function ValueChainSection() {
                     </li>
                   ))}
                 </ul>
-                <ul className="mt-4 flex flex-wrap gap-2">
+                <ul className="mt-4 hidden flex-wrap gap-2 sm:flex">
                   {s.tags.map((tag) => (
                     <li key={tag} className={`rounded-full border px-3.5 py-1 text-[12px] font-medium ${t.chip}`}>
                       {tag}

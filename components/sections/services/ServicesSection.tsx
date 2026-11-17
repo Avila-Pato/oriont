@@ -59,8 +59,11 @@ export default function ServicesSection() {
           </p>
         </div>
 
-        <BrandGrid />
-        <BrandPanels />
+        {/* al llegar desde el menú (#servicios) las tarjetas quedan enteras a la vista */}
+        <div data-anchor-focus>
+          <BrandGrid />
+          <BrandPanels />
+        </div>
       </div>
     </section>
   );

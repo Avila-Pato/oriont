@@ -3,7 +3,7 @@
 import { useEffect, useState, type RefObject } from "react";
 
 /**
- * true (y se queda en true) cuando el elemento está a `margin` de entrar en pantalla.
+ * cuando el elemento está a `margin` de entrar en pantalla.
  * Sirve para no preparar animaciones (GSAP/ScrollTrigger) de secciones de abajo durante la
  * carga: esa preparación lee y escribe estilos y alargaba la tarea de hidratación.
  * ademas divide tareas para evitar cargas de js en el navegador

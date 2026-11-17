@@ -16,13 +16,16 @@ import inchcape from "@/public/sponsors/inchcape.webp";
 import itau from "@/public/sponsors/itau.webp";
 import mapfre from "@/public/sponsors/mapfre.webp";
 import metlife from "@/public/sponsors/metlife.webp";
+import metlifeColor from "@/public/sponsors/metlife-color.webp";
 import mok from "@/public/sponsors/mok.webp";
 import realeseguros from "@/public/sponsors/realeseguros.webp";
+import realesegurosColor from "@/public/sponsors/realeseguros-color.webp";
 import rentanacional from "@/public/sponsors/rentanacional.webp";
 import salcobrand from "@/public/sponsors/salcobrand.webp";
 import scotiabank from "@/public/sponsors/scotiabank.webp";
 import smu from "@/public/sponsors/smu.webp";
 import sura from "@/public/sponsors/sura.webp";
+import suraColor from "@/public/sponsors/sura-color.webp";
 import tuya from "@/public/sponsors/tuya.webp";
 import zenit from "@/public/sponsors/zenit.webp";
 
@@ -35,29 +38,33 @@ import zenit from "@/public/sponsors/zenit.webp";
  *   scripts/build-sponsor-color-logos.mjs). Si existe, se usa esta.
  * - `color`: si no, un color de marca (fondo CSS recortado por el logo: color o degradado).
  * Colores aproximados: verificar con los oficiales.
+ * `industry`: se muestra bajo el nombre de la marca encendida (junto al título).
+ * PROVISORIA: la asignó el equipo de desarrollo; confirmar con el área comercial.
  */
-export const SPONSORS: { name: string; logo: StaticImageData; color: string; colorLogo?: StaticImageData }[] = [
-  { name: "Bci", logo: bci, color: "#1a1a1a", colorLogo: bciColor },
-  { name: "MOK", logo: mok, color: "#e4002b" },
-  { name: "HDI Seguros", logo: hdi, color: "#006f3c" },
-  { name: "Scotiabank", logo: scotiabank, color: "#ec111a" },
-  { name: "Banco de Bogotá", logo: bancobogota, color: "#0043a9", colorLogo: bancobogotaColor },
-  { name: "BancoEstado", logo: bancoestado, color: "#f47920" },
-  { name: "Entel", logo: entel, color: "#002eff" },
-  { name: "Grupo Aval", logo: aval, color: "#003b71" },
-  { name: "MetLife", logo: metlife, color: "#0090da" },
-  { name: "SURA", logo: sura, color: "#0033a0" },
-  { name: "Europ Assistance", logo: europassistance, color: "#0066b3" },
-  { name: "Itaú", logo: itau, color: "#ec7000" },
-  { name: "Mapfre", logo: mapfre, color: "#d81e05" },
-  { name: "BNP Paribas Cardif", logo: cardif, color: "#00915a" },
-  { name: "Tuya", logo: tuya, color: "#e4007c" },
-  { name: "Renta Nacional", logo: rentanacional, color: "#e2001a" },
-  { name: "Reale Seguros", logo: realeseguros, color: "#003c78" },
-  { name: "Cencosud", logo: cencosud, color: "#0e62ac" },
-  { name: "SMU", logo: smu, color: "#e30613" },
-  { name: "Inchcape", logo: inchcape, color: "#0b1f45" },
-  { name: "Salcobrand", logo: salcobrand, color: "#0056a6" },
-  { name: "Zenit", logo: zenit, color: "#e30613" },
-  { name: "abc", logo: abc, color: "#e30613" },
+export type Industry = "Banca" | "Seguros y asistencia" | "Retail" | "Telecomunicaciones";
+
+export const SPONSORS: { name: string; industry: Industry; logo: StaticImageData; color: string; colorLogo?: StaticImageData }[] = [
+  { name: "Bci", industry: "Banca", logo: bci, color: "#1a1a1a", colorLogo: bciColor },
+  { name: "MOK", industry: "Seguros y asistencia", logo: mok, color: "#e5007d" },
+  { name: "HDI Seguros", industry: "Seguros y asistencia", logo: hdi, color: "#00843d" },
+  { name: "Scotiabank", industry: "Banca", logo: scotiabank, color: "#ec111a" },
+  { name: "Banco de Bogotá", industry: "Banca", logo: bancobogota, color: "#0043a9", colorLogo: bancobogotaColor },
+  { name: "BancoEstado", industry: "Banca", logo: bancoestado, color: "#f47920" },
+  { name: "Entel", industry: "Telecomunicaciones", logo: entel, color: "#002eff" },
+  { name: "Grupo Aval", industry: "Banca", logo: aval, color: "#003b71" },
+  { name: "MetLife", industry: "Seguros y asistencia", logo: metlife, color: "#0090da", colorLogo: metlifeColor },
+  { name: "SURA", industry: "Seguros y asistencia", logo: sura, color: "#0033a0", colorLogo: suraColor },
+  { name: "Europ Assistance", industry: "Seguros y asistencia", logo: europassistance, color: "#0066b3" },
+  { name: "Itaú", industry: "Banca", logo: itau, color: "#ec7000" },
+  { name: "Mapfre", industry: "Seguros y asistencia", logo: mapfre, color: "#d81e05" },
+  { name: "BNP Paribas Cardif", industry: "Seguros y asistencia", logo: cardif, color: "#00915a" },
+  { name: "Tuya", industry: "Banca", logo: tuya, color: "#e4007c" },
+  { name: "Renta Nacional", industry: "Seguros y asistencia", logo: rentanacional, color: "#e2001a" },
+  { name: "Reale Seguros", industry: "Seguros y asistencia", logo: realeseguros, color: "#0a3c84", colorLogo: realesegurosColor },
+  { name: "Cencosud", industry: "Retail", logo: cencosud, color: "#0e62ac" },
+  { name: "SMU", industry: "Retail", logo: smu, color: "#e30613" },
+  { name: "Inchcape", industry: "Retail", logo: inchcape, color: "#0b1f45" },
+  { name: "Salcobrand", industry: "Retail", logo: salcobrand, color: "#0056a6" },
+  { name: "Zenit", industry: "Seguros y asistencia", logo: zenit, color: "#e30613" },
+  { name: "abc", industry: "Retail", logo: abc, color: "#e30613" },
 ];

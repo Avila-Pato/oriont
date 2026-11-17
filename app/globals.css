@@ -62,19 +62,19 @@
     from { transform: translateY(100%); }
     to { transform: translateY(0%); }
   }
-
-  /* pulso que corre por la línea de un sponsor hasta Oriont (SponsorNetwork). El trazo tiene
-     pathLength=1: el tramo entra por el logo y sale por el nodo central. Solo pinta, sin reflow. */
-  --animate-net-pulse: net-pulse 1s cubic-bezier(0.45, 0, 0.55, 1) both;
-  @keyframes net-pulse {
-    from { stroke-dashoffset: 0.14; opacity: 1; }
-    to { stroke-dashoffset: -1; opacity: 1; }
-  }
 }
 
 html,
 body {
   overflow-x: clip;
+}
+
+/* Lenis detenido (panel de contacto abierto): su CSS le pone overflow: clip al html, lo que
+   quita la barra de scroll, ensancha la página y la recalcula entera (la página se corría de
+   lado y el cuadro pesado hacía saltar la animación del panel). Lenis ya bloquea la rueda por
+   su cuenta mientras está detenido, así que la barra se mantiene. */
+html.lenis.lenis-stopped:not(.lenis-autoToggle) {
+  overflow: visible;
 }
 
 body {

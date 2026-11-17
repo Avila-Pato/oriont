@@ -103,8 +103,33 @@ export default function Globe({ className = "", active = null, focus = null, onH
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const points = loadLandDots();
+    // Datos de los puntos en arreglos contiguos (el bucle de dibujo los recorre ~18.000 veces por
+    // frame): coordenadas, país (índice en CODES, -1 = ninguno) y la fase del destello de cada uno
+    // ya en seno/coseno, para no llamar a Math.sin por punto en cada frame.
+    const N = points.length;
+    const PX = new Float32Array(N);
+    const PY = new Float32Array(N);
+    const PZ = new Float32Array(N);
+    const PCODE = new Int8Array(N);
+    const TW_SIN = new Float32Array(N);
+    const TW_COS = new Float32Array(N);
+    points.forEach((p, i) => {
+      [PX[i], PY[i], PZ[i]] = p.v;
+      PCODE[i] = p.c ? CODES.indexOf(p.c) : -1;
+      TW_SIN[i] = Math.sin(i * 12.9898);
+      TW_COS[i] = Math.cos(i * 12.9898);
+    });
     // desfase de cada punto respecto del frente de escaneo: el borde queda irregular, "digital"
     const jitter = Float32Array.from(points, (_, i) => hash(i) * 0.03);
+    // búferes de pantalla reutilizados entre frames (antes se creaban arreglos nuevos en cada
+    // frame y el recolector de basura trabajaba de más): x, y por punto, con su cantidad usada
+    const BUCKETS = 10;
+    const inkBuf = Array.from({ length: BUCKETS }, () => new Float32Array(N * 2));
+    const inkLen = new Int32Array(BUCKETS);
+    const countryBuf = CODES.map(() => new Float32Array(N * 2));
+    const countryLen = new Int32Array(CODES.length);
+    const freshBuf = new Float32Array(N * 3); // x, y, intensidad
+    let freshLen = 0;
     const mono = getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono").trim();
     const monoFont = `${mono ? mono + ", " : ""}ui-monospace, monospace`;
 
@@ -274,7 +299,10 @@ export default function Globe({ className = "", active = null, focus = null, onH
       const idle =
         !introing && !sparks.length && !mouse && !dragging && !act && !foc && hover < 0.01 && zoom < 0.01 && focusZoom < 0.01 &&
         Math.abs(velRot) < 1e-4 && Math.abs(velTilt) < 1e-4 && Math.abs(tilt - BASE_TILT) < 1e-3;
-      if (idle && now - last < IDLE_FRAME - 2) {
+      // La entrada también va a 30 fps (si nadie interactúa): coincide con la carga e hidratación
+      // de la página y a 60 fps duplicaba el trabajo del hilo principal sin verse distinto.
+      const calm = idle || (introing && !mouse && !dragging);
+      if (calm && now - last < IDLE_FRAME - 2) {
         raf = requestAnimationFrame(draw);
         return;
       }
@@ -440,23 +468,25 @@ export default function Globe({ className = "", active = null, focus = null, onH
 
       // puntos (agrupados por brillo) + detección de hover por país
       const LENS = 80;
-      const BUCKETS = 10;
-      const ink: number[][] = Array.from({ length: BUCKETS }, () => []);
-      const byCountry = Object.fromEntries(CODES.map((code) => [code, [] as number[]])) as Record<CountryCode, number[]>;
+      inkLen.fill(0);
+      countryLen.fill(0);
+      freshLen = 0;
       const cr = Math.cos(rot);
       const sr = Math.sin(rot);
+      // destello: sin(now·k + fase) = sin(now·k)·cos(fase) + cos(now·k)·sin(fase)
+      const twS = Math.sin(now * 0.0025);
+      const twC = Math.cos(now * 0.0025);
       let nearest: CountryCode | null = null;
       // con el dedo se apunta mucho menos preciso que con el mouse: área de toque más grande
       let nearestD = touch ? 30 : 12;
-      // puntos recién materializados (franja brillante bajo el frente): [x, y, intensidad]
-      const fresh: number[] = [];
-      for (let pi = 0; pi < points.length; pi++) {
-        const p = points[pi];
-        const v = p.v;
-        const x0 = v[0] * cr - v[2] * sr;
-        const z0 = v[0] * sr + v[2] * cr;
-        const ny = v[1] * cosT - z0 * sinT;
-        const z = v[1] * sinT + z0 * cosT;
+      for (let pi = 0; pi < N; pi++) {
+        const vx = PX[pi];
+        const vy = PY[pi];
+        const vz = PZ[pi];
+        const x0 = vx * cr - vz * sr;
+        const z0 = vx * sr + vz * cr;
+        const ny = vy * cosT - z0 * sinT;
+        const z = vy * sinT + z0 * cosT;
         if (z < 0.01) continue;
         let x = cx + x0 * R;
         let y = cy - ny * R;
@@ -464,45 +494,59 @@ export default function Globe({ className = "", active = null, focus = null, onH
           const d = frontN - ny - jitter[pi];
           if (d < 0) continue; // todavía sobre el frente: no existe
           if (d < INTRO_BAND) {
-            // recién aparecido: celeste junto al frente, se funde a su color normal al alejarse
-            fresh.push(x, y, 1 - d / INTRO_BAND);
+            // recién aparecido (franja brillante bajo el frente): celeste junto al frente, se funde
+            // a su color normal al alejarse
+            freshBuf[freshLen++] = x;
+            freshBuf[freshLen++] = y;
+            freshBuf[freshLen++] = 1 - d / INTRO_BAND;
             continue;
           }
         }
+        const ci = PCODE[pi];
         // brillo según profundidad + destello propio de cada partícula
-        const tw = 0.7 + 0.3 * Math.sin(now * 0.0025 + pi * 12.9898);
+        const tw = 0.7 + 0.3 * (twS * TW_COS[pi] + twC * TW_SIN[pi]);
         let a = (0.35 + 0.65 * z) * tw;
         if (mouse) {
           const dx = x - mouse.x;
           const dy = y - mouse.y;
           const d = Math.hypot(dx, dy);
-          if (p.c && !moved && d < nearestD) {
+          if (ci >= 0 && !moved && d < nearestD) {
             nearestD = d;
-            nearest = p.c;
+            nearest = CODES[ci];
           }
-          if (d < LENS && !p.c) {
+          if (d < LENS && ci < 0) {
             const k = (1 - d / LENS) * hover;
             x += (dx / (d || 1)) * k * 6;
             y += (dy / (d || 1)) * k * 6;
             a += k * 0.3;
           }
         }
-        if (p.c) byCountry[p.c].push(x, y);
-        else ink[Math.min(BUCKETS - 1, Math.floor(Math.min(1, a) * BUCKETS))].push(x, y);
+        if (ci >= 0) {
+          const buf = countryBuf[ci];
+          buf[countryLen[ci]++] = x;
+          buf[countryLen[ci]++] = y;
+        } else {
+          const b = Math.min(BUCKETS - 1, Math.floor(Math.min(1, a) * BUCKETS));
+          const buf = inkBuf[b];
+          buf[inkLen[b]++] = x;
+          buf[inkLen[b]++] = y;
+        }
       }
       // lupa: el país seleccionado se agranda desde su centro, el resto del globo no cambia
       let mcx = cx;
       let mcy = cy;
-      const marr = magCode ? byCountry[magCode] : null;
-      if (marr && marr.length) {
+      const mi = magCode ? CODES.indexOf(magCode) : -1;
+      if (mi >= 0 && countryLen[mi]) {
+        const marr = countryBuf[mi];
+        const mlen = countryLen[mi];
         mcx = 0;
         mcy = 0;
-        for (let i = 0; i < marr.length; i += 2) {
+        for (let i = 0; i < mlen; i += 2) {
           mcx += marr[i];
           mcy += marr[i + 1];
         }
-        mcx /= marr.length / 2;
-        mcy /= marr.length / 2;
+        mcx /= mlen / 2;
+        mcy /= mlen / 2;
       }
       const mk = zoom * MAG;
       /** desplaza un punto de pantalla según la lupa; w = 1 dentro del país, 0 fuera */
@@ -532,17 +576,20 @@ export default function Globe({ className = "", active = null, focus = null, onH
       const small = R < 200;
       const inkK = small ? 0.7 : 1;
       for (let b = 0; b < BUCKETS; b++) {
-        const arr = ink[b];
-        if (!arr.length) continue;
+        const arr = inkBuf[b];
+        const len = inkLen[b];
+        if (!len) continue;
         ctx.fillStyle = `rgba(${DOT},${(0.1 + ((b + 1) / BUCKETS) * 0.7) * inkK})`;
         ctx.beginPath();
-        for (let i = 0; i < arr.length; i += 2) ctx.rect(arr[i] - ds / 2, arr[i + 1] - ds / 2, ds, ds);
+        for (let i = 0; i < len; i += 2) ctx.rect(arr[i] - ds / 2, arr[i + 1] - ds / 2, ds, ds);
         ctx.fill();
       }
       // territorio marcado santiago, lima, bogota
-      for (const code of CODES) {
-        const arr = byCountry[code];
-        if (!arr.length) continue;
+      for (let ci = 0; ci < CODES.length; ci++) {
+        const code = CODES[ci];
+        const arr = countryBuf[ci];
+        const len = countryLen[ci];
+        if (!len) continue;
         const isActive = active === code;
         const dim = active && !isActive;
         const s = ds * (isActive ? (small ? 1.4 : 1.75) : small ? 1.05 : 1.35);
@@ -554,33 +601,33 @@ export default function Globe({ className = "", active = null, focus = null, onH
           ctx.save();
           ctx.fillStyle = `rgba(${LINE},${0.14 * zoom})`;
           ctx.beginPath();
-          for (let i = 0; i < arr.length; i += 2) {
+          for (let i = 0; i < len; i += 2) {
             const [x, y] = lens(arr[i], arr[i + 1], 1);
             ctx.rect(x - sm / 2 + zoom * 2, y - sm / 2 + zoom * LIFT * 1.2, sm, sm);
           }
           ctx.fill();
           ctx.restore();
           ctx.beginPath();
-          for (let i = 0; i < arr.length; i += 2) {
+          for (let i = 0; i < len; i += 2) {
             const [x, y] = lens(arr[i], arr[i + 1], 1);
             ctx.rect(x - sm / 2, y - sm / 2, sm, sm);
           }
         } else {
-          for (let i = 0; i < arr.length; i += 2) ctx.rect(arr[i] - s / 2, arr[i + 1] - s / 2, s, s);
+          for (let i = 0; i < len; i += 2) ctx.rect(arr[i] - s / 2, arr[i + 1] - s / 2, s, s);
         }
         ctx.fill();
       }
       // franja recién materializada: degradé suave de celeste (junto al frente) a tinta normal
-      if (fresh.length) {
+      if (freshLen) {
         const STEPS_F = 4;
         for (let band = 0; band < STEPS_F; band++) {
           const lo = band / STEPS_F;
           ctx.fillStyle = `rgba(${GLOW},${0.35 + (band / (STEPS_F - 1)) * 0.5})`;
           ctx.beginPath();
-          for (let i = 0; i < fresh.length; i += 3) {
-            const k = fresh[i + 2];
+          for (let i = 0; i < freshLen; i += 3) {
+            const k = freshBuf[i + 2];
             if (k < lo || k >= lo + 1 / STEPS_F) continue;
-            ctx.rect(fresh[i] - ds / 2, fresh[i + 1] - ds / 2, ds, ds);
+            ctx.rect(freshBuf[i] - ds / 2, freshBuf[i + 1] - ds / 2, ds, ds);
           }
           ctx.fill();
         }

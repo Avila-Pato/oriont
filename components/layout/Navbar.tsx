@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import OriontLogo from "@/components/ui/OriontLogo";
 import { NAV_CTA, NAV_LINKS } from "@/data/navigation";
+import { openContact } from "@/components/contact/contactEvents";
 
 
 type Box = { left: number; top: number; width: number; height: number; radius: number };
@@ -19,6 +20,40 @@ export default function Navbar() {
   const [pill, setPill] = useState({ left: 0, width: 0, visible: false });
   const listRef = useRef<HTMLUListElement>(null);
   const ctaRef = useRef<HTMLAnchorElement>(null);
+  // sección en pantalla (href del enlace) y enlace bajo el mouse: el indicador va al que está
+  // bajo el mouse y, si no hay ninguno, se queda en la sección actual
+  const [active, setActive] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+
+  // sección actual: la que cruza una línea al 40% de la pantalla (arriba del todo, en el hero, ninguna)
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const line = window.innerHeight * 0.4;
+      let current: string | null = null;
+      for (const l of NAV_LINKS) {
+        const el = document.getElementById(l.href.slice(1));
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.top <= line && r.bottom > line) current = l.href;
+      }
+      setActive((a) => (a === current ? a : current));
+    };
+    // como mucho una lectura por cuadro
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    check();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   // al bajar se compacta y se mantiene así; al volver arriba del todo se abre
   useEffect(() => {
@@ -75,10 +110,17 @@ export default function Navbar() {
     bottom: Math.max(shell.open.top + shell.open.height, shell.tight.top + shell.tight.height),
   };
 
-  const movePill = (el: HTMLElement) => {
+  // el indicador sigue al enlace bajo el mouse; si no hay, a la sección actual; si no, se oculta
+  const target = hovered ?? active;
+  useEffect(() => {
+    const el = target ? itemRefs.current[target] : null;
+    if (!el) {
+      setPill((p) => (p.visible ? { ...p, visible: false } : p));
+      return;
+    }
     const listW = listRef.current?.offsetWidth ?? 0;
     setPill({ left: el.offsetLeft, width: listW - el.offsetLeft - el.offsetWidth, visible: true });
-  };
+  }, [target]);
 
   return (
     // pointer-events-none: la caja del header incluye el alto del menú móvil (oculto) y tapaba
@@ -118,7 +160,7 @@ export default function Navbar() {
               blur obligaba a repintar en cada frame) */}
           <span
             aria-hidden="true"
-            className={`absolute inset-0 rounded-full bg-[#f5f0e6]/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl transition-opacity duration-500 ${
+            className={`absolute inset-0 rounded-full border border-[#21255c]/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl transition-opacity duration-500 ${
               scrolled ? "opacity-100" : "opacity-0"
             }`}
           />
@@ -128,7 +170,7 @@ export default function Navbar() {
         {/* enlaces: cápsula central con indicador deslizante */}
         <ul
           ref={listRef}
-          onMouseLeave={() => setPill((p) => ({ ...p, visible: false }))}
+          onMouseLeave={() => setHovered(null)}
           className="pointer-events-auto relative hidden items-center rounded-full p-1.5 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex"
           style={{ transform: `translateX(${tight ? shift.list : 0}px)` }}
         >
@@ -142,12 +184,23 @@ export default function Navbar() {
             }}
           />
           {NAV_LINKS.map((l) => (
-            <li key={l.href} className="relative">
+            <li
+              key={l.href}
+              ref={(el) => {
+                itemRefs.current[l.href] = el;
+              }}
+              className="relative"
+            >
               <a
                 href={l.href}
-                onMouseEnter={(e) => movePill(e.currentTarget.parentElement as HTMLElement)}
-                onFocus={(e) => movePill(e.currentTarget.parentElement as HTMLElement)}
-                className="peer relative z-10 block rounded-full px-5 py-2 text-[13px] font-medium text-[#f5f0e6]/75 transition-colors duration-300 hover:text-[#21255c] focus-visible:text-[#21255c] focus-visible:outline-none"
+                aria-current={active === l.href ? "location" : undefined}
+                onMouseEnter={() => setHovered(l.href)}
+                onFocus={() => setHovered(l.href)}
+                onBlur={() => setHovered(null)}
+                // texto oscuro sobre el indicador: el enlace bajo el mouse, o la sección actual
+                className={`peer relative z-10 block rounded-full px-5 py-2 text-[13px] font-medium transition-colors duration-300 focus-visible:outline-none ${
+                  target === l.href ? "text-[#21255c]" : "text-[#f5f0e6]/75"
+                }`}
               >
                 {l.label}
               </a>
@@ -169,6 +222,11 @@ export default function Navbar() {
           <a
             ref={ctaRef}
             href={NAV_CTA.href}
+            // abre el panel de contacto en vez de recorrer la página hasta el formulario del final
+            onClick={(e) => {
+              e.preventDefault();
+              openContact();
+            }}
             // fondo y borde en capas (::before / ::after) que solo animan opacity: color,
             // background-color y border-color no se componen en GPU
             className={`group relative isolate hidden items-center gap-3 rounded-full border border-transparent bg-[#f5f0e6]/80 py-1.5 pl-5 pr-1.5 text-[13px] font-medium text-[#21255c] backdrop-blur-xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] before:absolute before:-inset-px before:-z-10 before:rounded-full before:bg-[#f5f0e6] before:transition-opacity before:duration-500 after:absolute after:-inset-px after:-z-10 after:rounded-full after:border after:border-[#21255c] after:transition-opacity after:duration-500 hover:after:opacity-100 sm:inline-flex ${
@@ -177,8 +235,21 @@ export default function Navbar() {
             style={{ transform: `translateX(${tight ? shift.cta : 0}px)` }}
           >
             {NAV_CTA.label}
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] text-white transition-transform duration-300 group-hover:-rotate-45">
-              →
+            {/* ícono de correo (antes una flecha); al pasar el mouse crece un poco */}
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] text-white transition-transform duration-300 group-hover:scale-110">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
             </span>
           </a>
           <button
@@ -186,14 +257,15 @@ export default function Navbar() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
-            className="relative grid h-11 w-11 place-items-center rounded-full bg-[#21255c] lg:hidden"
+            // misma cápsula blanca que el logo al bajar (antes un círculo azul marino macizo)
+            className="relative grid h-11 w-11 place-items-center rounded-full border border-[#21255c]/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl lg:hidden"
           >
             <span className="relative block h-3 w-4">
               <span
-                className={`absolute left-0 top-0 h-px w-4 bg-[#f5f0e6] transition-transform ${open ? "translate-y-1.5 rotate-45" : ""}`}
+                className={`absolute left-0 top-0 h-[1.5px] w-4 rounded-full bg-[#21255c] transition-transform duration-300 ${open ? "translate-y-[5.25px] rotate-45" : ""}`}
               />
               <span
-                className={`absolute bottom-0 left-0 h-px w-4 bg-[#f5f0e6] transition-transform ${open ? "-translate-y-1.5 -rotate-45" : ""}`}
+                className={`absolute bottom-0 left-0 h-[1.5px] rounded-full bg-[#21255c] transition-transform duration-300 ${open ? "w-4 -translate-y-[5.25px] -rotate-45" : "w-2.5"}`}
               />
             </span>
           </button>
@@ -203,25 +275,47 @@ export default function Navbar() {
       {/* menú móvil: siempre maquetado (está en el header fijo, no empuja la página); se abre con
           clip-path + opacity en vez de animar max-height */}
       <div
-        className={`mx-4 rounded-3xl bg-[#21255c] transition-[clip-path,opacity,visibility] duration-300 md:mx-8 lg:hidden ${
+        className={`mx-4 mt-2 rounded-3xl border border-[#21255c]/10 bg-white/95 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] backdrop-blur-xl transition-[clip-path,opacity,visibility] duration-300 md:mx-8 lg:hidden ${
           open
             ? "pointer-events-auto visible opacity-100 [clip-path:inset(0_0_0_0_round_24px)]"
             : "pointer-events-none invisible opacity-0 [clip-path:inset(0_0_100%_0_round_24px)]"
         }`}
       >
-        <ul className="flex flex-col p-3">
-          {[...NAV_LINKS, { label: NAV_CTA.mobileLabel, href: NAV_CTA.href }].map((l) => (
-            <li key={l.href}>
+        <ul className="flex flex-col px-3 pt-3">
+          {NAV_LINKS.map((l, i) => (
+            <li key={l.href} className="border-b border-[#21255c]/8 last:border-0">
               <a
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="block rounded-2xl px-5 py-4 font-display text-xl text-[#f5f0e6] hover:bg-white/5"
+                className="flex items-center gap-4 rounded-2xl px-4 py-3.5 font-display text-[19px] font-semibold tracking-tight text-[#21255c] active:bg-[#dcebf3]/60"
               >
-                {l.label}
+                <span className="font-mono text-[11px] font-normal text-[#248caa]">{String(i + 1).padStart(2, "0")}</span>
+                <span className="flex-1">{l.label}</span>
+                <span aria-hidden className="text-[#21255c]/30">→</span>
               </a>
             </li>
           ))}
         </ul>
+        {/* "Contacto" va aparte como botón: abre el panel (igual que el botón de escritorio) */}
+        <div className="p-3 pt-2">
+          <a
+            href={NAV_CTA.href}
+            onClick={(e) => {
+              e.preventDefault();
+              setOpen(false);
+              openContact();
+            }}
+            className="flex items-center justify-between rounded-2xl bg-[#248caa] py-2 pl-5 pr-2 text-[15px] font-medium text-white active:bg-[#1f7a95]"
+          >
+            {NAV_CTA.label}
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+            </span>
+          </a>
+        </div>
       </div>
     </header>
   );

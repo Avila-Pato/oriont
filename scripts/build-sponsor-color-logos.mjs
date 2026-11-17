@@ -1,5 +1,5 @@
 /**
- * Versiones a color de los logos de sponsors con más de un color (Bci, Banco de Bogotá): pinta
+ * Versiones a color de los logos de sponsors con más de un color (Bci, Banco de Bogotá, MetLife, SURA, Reale): pinta
  * cada pieza o zona del logo original (PNG negro sobre blanco) con su color de marca, y recorta /
  * escala igual que scripts/build-sponsor-logos.mjs para que calcen exacto sobre el logo base.
  *
@@ -134,6 +134,31 @@ const LOGOS = {
       return bogotaSymbol(u, v);
     },
   },
+  // MetLife: la "M" en tres piezas (izquierda azul, arco del centro turquesa, derecha verde) y el
+  // texto casi negro. Las piezas se miden sobre metlife.png (centros x ≈ 224 / 369 / 515)
+  metlife: {
+    file: "metlife.png",
+    color(x, y, c) {
+      if (x > 650) return "#1d1d1b";
+      const cx = c ? c.cx : x;
+      return cx < 300 ? "#0090da" : cx > 440 ? "#a4ce4e" : "#007a8a";
+    },
+  },
+  // SURA: el texto en su azul y las alas en celeste
+  sura: {
+    file: "sura.png",
+    color(x) {
+      return x > 1090 ? "#00aec7" : "#0033a0";
+    },
+  },
+  // Reale: el cuadrado en azul y la "R" (los huecos blancos del logo negro) en amarillo; el texto azul
+  realeseguros: {
+    file: "realeseguros.png",
+    fill: { box: [126, 127, 512, 513], color: "#f6b40e" },
+    color() {
+      return "#0a3c84";
+    },
+  },
   bci: {
     file: "bci.png",
     color(x, y, c) {
@@ -161,9 +186,18 @@ for (const [name, cfg] of Object.entries(LOGOS)) {
   const rgba = Buffer.alloc(w * h * 4);
   for (let i = 0; i < w * h; i++) {
     const a = 255 - gray[i];
-    if (!a) continue;
     const x = i % w;
     const y = (i / w) | 0;
+    // `fill`: dentro de la caja, lo blanco del logo (huecos) se pinta con otro color (opaco)
+    const box = cfg.fill?.box;
+    if (box && x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3]) {
+      const ink = hex(cfg.color(x, y, null));
+      const bg = hex(cfg.fill.color);
+      for (let k = 0; k < 3; k++) rgba[i * 4 + k] = Math.round((ink[k] * a + bg[k] * (255 - a)) / 255);
+      rgba[i * 4 + 3] = 255;
+      continue;
+    }
+    if (!a) continue;
     const [r, g, b] = hex(cfg.color(x, y, lab[i] >= 0 ? comps[lab[i]] : null));
     rgba[i * 4] = r;
     rgba[i * 4 + 1] = g;

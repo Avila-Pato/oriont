@@ -3,21 +3,24 @@ import { SPONSORS } from "@/data/sponsors";
 import SponsorLogo from "./SponsorLogo";
 
 /**
- * Celular y tablet: grilla con todas las marcas a la vista. El logo toma su color de marca al pasar
- * el cursor o cuando SponsorScrollColor marca la celda con data-on. La entrada con el scroll la hace
- * SponsorsReveal sobre [data-logo-cell]. Celdas de alto fijo: sin saltos de diseño (CLS).
- * En escritorio se usa SponsorNetwork.
+ * Celular y tablet: todas las marcas a la vista en una nube compacta (filas centradas que se
+ * acomodan según el ancho de cada logo). Logos chicos y poco espacio entre ellos para que la
+ * sección no se alargue (antes eran cintas que se deslizaban, y antes una grilla de ~1150px).
+ * El logo toma su color de marca al tocarlo o cuando SponsorScrollColor marca la celda con data-on.
+ * La entrada con el scroll la hace SponsorsReveal sobre [data-logo-cell].
+ * Ancho de cada logo fijado por su proporción (SponsorLogo): sin CLS. En escritorio se usa SponsorCircuit.
  */
 export default function SponsorGrid() {
   return (
     <ul
       data-sponsor-grid
       aria-label="Marcas que confían en Oriont"
-      className="grid grid-cols-2 gap-x-8 gap-y-2 [--logo-h:34px] sm:grid-cols-3 md:grid-cols-4 md:[--logo-h:40px] lg:hidden"
+      className="flex flex-wrap items-center justify-center gap-x-6 gap-y-5 [--logo-h:22px] md:gap-x-9 md:gap-y-7 md:[--logo-h:28px] lg:hidden"
     >
-      {SPONSORS.map((s) => (
-        <li key={s.name} data-logo-cell className="group flex h-24 items-center justify-center px-[5%] md:h-28">
-          <SponsorLogo {...s} sizes="(min-width: 768px) 200px, 45vw" />
+      {SPONSORS.map((s, i) => (
+        // data-sponsor: índice en SPONSORS (SponsorLive muestra el nombre de la que se enciende)
+        <li key={s.name} data-logo-cell data-sponsor={i} className="group flex items-center justify-center">
+          <SponsorLogo {...s} sizes="(min-width: 768px) 120px, 90px" />
         </li>
       ))}
     </ul>

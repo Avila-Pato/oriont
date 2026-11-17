@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { openContact } from "@/components/contact/contactEvents";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -60,6 +61,12 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       const a = (e.target as Element | null)?.closest?.<HTMLAnchorElement>('a[href^="#"]');
       if (!a) return;
       const hash = a.getAttribute("href") ?? "#";
+      // contacto: se abre el panel lateral en vez de recorrer toda la página hasta el final
+      if (hash === "#contacto") {
+        e.preventDefault();
+        openContact();
+        return;
+      }
       const el = hash === "#" ? null : document.getElementById(decodeURIComponent(hash.slice(1)));
       if (hash !== "#" && !el) return;
       e.preventDefault();
@@ -74,6 +81,18 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
           // centrado en pantalla (si cabe): donde la sección se ve armada, p. ej. la cadena de valor
           if (el.dataset.anchorAlign === "center" && r.height < window.innerHeight)
             top -= (window.innerHeight - r.height) / 2;
+          // [data-anchor-focus] dentro de la sección: lo importante (p. ej. las tarjetas de
+          // servicios) debe quedar entero en pantalla. Si con el borde de arriba se corta por abajo,
+          // se baja lo justo, sin que su parte de arriba quede bajo el menú flotante.
+          const focus = el.querySelector<HTMLElement>("[data-anchor-focus]");
+          if (focus) {
+            const f = focus.getBoundingClientRect();
+            const MENU = 96; // alto del menú flotante + aire
+            const MARGIN = 24;
+            const fitBottom = f.bottom + window.scrollY + MARGIN - window.innerHeight;
+            const maxTop = f.top + window.scrollY - MENU;
+            top = Math.max(top, Math.min(fitBottom, maxTop));
+          }
           top = Math.max(0, top);
         }
         if (current) current.scrollTo(top);

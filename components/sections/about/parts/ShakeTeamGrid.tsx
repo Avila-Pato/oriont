@@ -12,12 +12,15 @@ gsap.registerPlugin(Flip, useGSAP);
 
 type MotionPermission = "granted" | "denied";
 type DeviceMotionEventIOS = typeof DeviceMotionEvent & { requestPermission?: () => Promise<MotionPermission> };
-type Sensor = "unknown" | "unsupported" | "needs-permission" | "on" | "denied";
+// "silent": el navegador tiene la API pero no entrega datos (Brave bloquea los sensores de
+// movimiento por defecto): se ofrece tocar la burbuja en vez de agitar
+type Sensor = "unknown" | "unsupported" | "needs-permission" | "on" | "denied" | "silent";
 
 const SHAKE_DELTA = 14; // m/s² de cambio brusco entre lecturas para contar como sacudida (bajo = más sensible)
 const SHAKE_HITS = 2; // sacudidas seguidas necesarias (evita disparos al caminar)
 const SHAKE_WINDOW = 800; // ms en que deben ocurrir esas sacudidas
 const COOLDOWN = 1300;
+const SILENT_AFTER = 2000; // ms sin lecturas del sensor para darlo por bloqueado
 const DURATION = 0.75; // s que dura el viaje de cada foto
 const MAX_DELAY = 0.18; // s de desfase máximo entre fotos (que no salten todas a la vez) // ms mínimos entre revueltas
 const MESSAGES = [
@@ -175,12 +178,19 @@ export default function ShakeTeamGrid() {
     const depth = tilters.map(() => gsap.utils.random(0.6, 1.4));
 
     let last: { x: number; y: number; z: number } | null = null;
+    // Brave (y otros con los sensores bloqueados) no manda eventos, o los manda con valores nulos:
+    // si no llega ninguna lectura real en un rato, se pasa a "toca para revolver"
+    let gotData = false;
+    const silentTimer =
+      sensor === "on" ? setTimeout(() => !gotData && setSensor("silent"), SILENT_AFTER) : undefined;
     let hits: number[] = [];
     let lastShake = 0;
 
     const onMotion = (e: DeviceMotionEvent) => {
       const a = e.accelerationIncludingGravity;
-      if (!a || a.x == null || a.y == null || a.z == null || !visible.current) return;
+      if (!a || a.x == null || a.y == null || a.z == null) return;
+      gotData = true;
+      if (!visible.current) return;
       const now = performance.now();
       if (last) {
         const d = Math.abs(a.x - last.x) + Math.abs(a.y - last.y) + Math.abs(a.z - last.z);
@@ -205,7 +215,10 @@ export default function ShakeTeamGrid() {
       }
     };
     window.addEventListener("devicemotion", onMotion);
-    return () => window.removeEventListener("devicemotion", onMotion);
+    return () => {
+      clearTimeout(silentTimer);
+      window.removeEventListener("devicemotion", onMotion);
+    };
   }, [sensor]);
 
   // en la burbuja el toque además revuelve (el permiso, si falta, lo pide el efecto de arriba)
@@ -256,7 +269,9 @@ export default function ShakeTeamGrid() {
         className="inline-flex h-10 touch-manipulation items-center rounded-full rounded-bl-md md:hidden border border-[#21255c]/15 bg-white/80 px-4 text-[13px] font-medium text-[#21255c] shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl transition-transform active:scale-95"
       >
         <span aria-live="polite">
-          {msg ?? (
+          {msg ?? (sensor === "silent" ? (
+            "Toca para revolver"
+          ) : (
             <svg width="34" height="22" viewBox="0 0 34 22" fill="none" aria-hidden="true" className="block">
               {/* ondas de movimiento a los lados */}
               <g
@@ -277,7 +292,7 @@ export default function ShakeTeamGrid() {
                 <circle cx="17" cy="16.8" r="0.9" fill="#248caa" />
               </g>
             </svg>
-          )}
+          ))}
         </span>
       </button>
 
