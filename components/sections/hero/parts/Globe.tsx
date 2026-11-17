@@ -283,6 +283,8 @@ export default function Globe({ className = "", active = null, focus = null, onH
       const { active, focus } = live.current;
       const focused = focus ? COUNTRIES.find((c) => c.code === focus) : undefined;
 
+      // el globo todavía viaja hacia el país elegido: la lupa espera a que llegue
+      let aligning = false;
       if (!dragging || !moved) {
         if (focused) {
           // girar suavemente hacia el país seleccionado (por el camino más corto)
@@ -290,6 +292,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
           let d = (targetRot - rot) % (Math.PI * 2);
           if (d > Math.PI) d -= Math.PI * 2;
           if (d < -Math.PI) d += Math.PI * 2;
+          aligning = Math.abs(d) > 0.15 || Math.abs(focused.view[0] * DEG - tilt) > 0.15;
           rot += d * 0.07;
           tilt += (focused.view[0] * DEG - tilt) * 0.07;
           velRot = 0;
@@ -320,12 +323,15 @@ export default function Globe({ className = "", active = null, focus = null, onH
         oy = (dy / h) * 14;
       }
       hover += ((inside || dragging ? 1 : 0) - hover) * 0.08;
-      zoom += ((active ? 1 : 0) - zoom) * 0.1;
+      // Al cambiar de país la lupa no salta de uno a otro: primero baja el anterior y recién
+      // entonces sube el nuevo, y si es el seleccionado, solo cuando el globo ya llegó a él.
+      if (active && !magCode) magCode = active;
+      const zoomOn = !!active && active === magCode && !(aligning && focus === active);
+      zoom += ((zoomOn ? 1 : 0) - zoom) * 0.1;
       // en pantallas chicas la tarjeta del país no cabe al lado: el globo se acerca al país elegido
       focusZoom += ((focus && w < 640 * CANVAS_SCALE ? 1 : 0) - focusZoom) * 0.08;
       const R = baseR * (1 + hover * 0.05) * (1 + focusZoom * 0.18); // en escritorio solo se amplía el país
-      if (active) magCode = active;
-      else if (zoom < 0.01) magCode = null;
+      if (zoom < 0.01) magCode = active;
       const cx = w / 2 + ox;
       const cy = h / 2 + oy;
       const sx = (q: { nx: number }) => cx + q.nx * R;

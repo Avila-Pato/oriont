@@ -6,7 +6,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useNearViewport } from "@/hooks/useNearViewport";
-import { dockedSheetEntrance } from "@/components/layout/stackedSheet";
 import { brands, type BrandStat } from "@/data/services";
 import { BRAND_THEME } from "./parts/themes";
 import { BRAND_LOGOS, IconPeople } from "./parts/visuals";
@@ -34,9 +33,6 @@ export default function ServicesSection() {
           ease: "power3.out",
           scrollTrigger: { trigger: "[data-brands]", start: "top 75%" },
         });
-
-        // llega como una tarjeta que se acopla (distinta de la hoja de "Soluciones" sobre el hero)
-        dockedSheetEntrance(root.current);
       });
       return () => mm.revert();
     },
@@ -48,7 +44,7 @@ export default function ServicesSection() {
       ref={root}
       id="servicios"
       // hoja que sube sobre la sección anterior: va encima, con esquinas redondeadas y sombra hacia arriba
-      className="relative z-10 rounded-t-[32px] bg-background py-24 text-[#21255c] shadow-[0_-30px_60px_-30px_rgba(13,16,48,0.45)] md:rounded-t-[48px] md:py-32"
+      className="relative bg-background py-24 text-[#21255c] md:py-32"
     >
       <div data-brands className="container-page">
         <div className="flex flex-col items-center text-center">

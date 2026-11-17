@@ -32,7 +32,7 @@ const SLOT = (() => {
 const MID = (TEAM_CARDS.length - 1) / 2;
 
 /** Composición final (llamado + fila de tarjetas + flecha), centrada en el alto visible. */
-const HOLD = 0.4; // pausa inicial (en unidades del timeline) con el círculo completo a la vista
+const HOLD = 0.3; // pausa inicial (en unidades del timeline) con el círculo completo a la vista
 const CTA_TOP = 96; // px libres arriba (menú flotante)
 const BOTTOM_PAD = 14; // px libres abajo
 const GAP_CTA_ROW = 32; // px entre el llamado y la fila
@@ -225,9 +225,10 @@ export default function AboutSection() {
             onUpdate: () => setSlidesOn(tl.time() >= tl.labels.expand + 1),
             scrollTrigger: {
               trigger: track.current,
-              start: "top top",
+              // arranca antes de que la sección quede fija: al llegar ya se está moviendo
+              start: "top 20%",
               end: "bottom bottom",
-              scrub: 1,
+              scrub: 1, // suavidad respecto a a la rueda
               invalidateOnRefresh: true,
             },
           })
@@ -244,7 +245,7 @@ export default function AboutSection() {
               rotation: (i) => fanRot(i) - TEAM_CARDS[i].rotate,
               scale: scaleOf,
               zIndex: (i) => (i === EXPAND ? 15 : 10),
-              duration: 1,
+              duration: 0.5, // duracion que dura las fotos en la fila 
               ease: "power2.inOut",
               stagger: 0.03,
             },
@@ -287,7 +288,7 @@ export default function AboutSection() {
             { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.1 },
             "expand+=0.7",
           )
-          .to({}, { duration: 0.6 }); // pausa con el formulario antes de soltar el pin
+          .to({}, { duration: 0.15 }); // pausa con el formulario antes de soltar el pin
 
         return () => ScrollTrigger.removeEventListener("refreshInit", layout);
       });
@@ -297,7 +298,7 @@ export default function AboutSection() {
 
   return (
     // escritorio: alto de la sección + 340vh de recorrido; la sección queda sticky mientras dura
-    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+340vh)]">
+    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+260vh)]">
     <section
       ref={scope}
       className="relative flex w-full flex-col items-center overflow-hidden px-4 py-24 lg:sticky lg:top-0 lg:block lg:p-0"

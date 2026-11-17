@@ -5,9 +5,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useNearViewport } from "@/hooks/useNearViewport";
-import { stackedSheetEntrance } from "@/components/layout/stackedSheet";
 import { steps, type StepIcon } from "@/data/value-chain";
 import { THEME } from "./parts/themes";
+import { SKIP_INTRO_EVENT, getLenis } from "@/components/layout/SmoothScroll";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -20,10 +20,33 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
  */
 
 const OFFSET = 36; // px que asoma cada tarjeta por encima de la siguiente
-const DEPTH_SCALE = 0.035; // cuánto se achica cada tarjeta de atrás
 const DEPTH_DIM = 0.07; // cuánto se oscurece cada tarjeta de atrás
-const CARD_H = 430; // alto de la tarjeta (px)
+const CARD_H = 455; // alto de la tarjeta (px)
 const SHUFFLE_OUT = 380; // ms del viaje de salida al barajar
+const LAST = steps.length - 1;
+
+/**
+ * Corre el scroll `d` px sin cortar la inercia. Con Lenis, `scrollTo(..., { immediate })` frena
+ * el scroll suave en seco (se sentía un frenón): aquí se corre también su animación en curso
+ * (origen, destino y valor), así sigue deslizando igual desde la nueva posición.
+ */
+function shiftScroll(d: number) {
+  const lenis = getLenis();
+  if (!lenis) {
+    window.scrollTo({ top: window.scrollY + d, behavior: "instant" });
+    return;
+  }
+  // `animate` es interno de Lenis (1.3.x): su tween en curso
+  const anim = (lenis as unknown as { animate?: { from: number; to: number; value: number } }).animate;
+  if (anim) {
+    anim.from += d;
+    anim.to += d;
+    anim.value += d;
+  }
+  lenis.animatedScroll += d;
+  lenis.targetScroll += d;
+  window.scrollTo({ top: lenis.animatedScroll, behavior: "instant" });
+}
 
 const pad = (i: number) => String(i + 1).padStart(2, "0");
 
@@ -38,29 +61,47 @@ const ICONS: Record<StepIcon, ReactNode> = {
 
 export default function ValueChainSection() {
   const root = useRef<HTMLElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const spacer = useRef<HTMLDivElement>(null);
+  // la entrada de las cartas corre una sola vez
+  const played = useRef(false);
+  // termina la entrada al tiro (mazo completo); lo deja listo el efecto de GSAP
+  const endIntro = useRef<(() => void) | null>(null);
   // las animaciones se preparan recién a una pantalla de distancia (no al cargar)
   const near = useNearViewport(root);
 
-  // orden del mazo: el último del arreglo queda al frente
-  const [order, setOrder] = useState(() => steps.map((_, i) => i));
-  // tarjeta que está viajando y hacia dónde: sale hacia el lado del cambio (avanzar en la cadena
-  // → derecha; retroceder → izquierda) mientras el mazo se reacomoda
-  const [moving, setMoving] = useState<{ i: number; dir: 1 | -1 } | null>(null);
+  // El mazo sigue SIEMPRE el orden de la lista: la elegida va al frente y las demás quedan
+  // detrás en orden por número, compactadas (sin huecos), así se leen todos los bordes de arriba
+  // (con 04 al frente: 01, 02, 03, 05). Sin elegir, 05 está al frente.
+  const [chosen, setChosen] = useState<number | null>(null);
+  // tarjeta saliendo: se desvanece hacia la derecha desde el puesto que tenía (y, z)
+  const [moving, setMoving] = useState<{ i: number; y: number; z: number } | null>(null);
   const busy = useRef(false);
-  const front = order[order.length - 1];
+  const front = chosen ?? LAST;
+  // cartas que ya entraron con el scroll (null = sin animación de entrada: todas a la vista)
+  const [shown, setShown] = useState<number | null>(null);
+  // en el índice se marca la última que llegó mientras el mazo se arma; después, la del frente
+  const marked = shown !== null && shown < steps.length ? shown - 1 : front;
 
-  /** trae una tarjeta al frente: sale hacia el lado del cambio, el mazo se reacomoda y vuelve encima */
+  /** cambio limpio: la elegida se desvanece hacia la derecha mientras el mazo se reacomoda; ya
+   *  invisible pasa adelante y entra desde la derecha. Nunca cruza visible por encima de otra. */
   const pick = (i: number) => {
+    // elegir mientras el mazo se arma con el scroll: primero se completa el mazo (si no, el índice
+    // seguía marcando la última que llegó y no la que quedaba al frente)
+    if (shown !== null && shown < steps.length) endIntro.current?.();
     if (i === front || busy.current) return;
+    const next = i === LAST ? null : i;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // sin movimiento: reordena al tiro (las transiciones están apagadas con motion-reduce)
-      setOrder((o) => [...o.filter((k) => k !== i), i]);
+      // sin movimiento: cambia al tiro (las transiciones están apagadas con motion-reduce)
+      setChosen(next);
       return;
     }
+    const behind = steps.map((_, k) => k).filter((k) => k !== front);
+    const depth = behind.length - behind.indexOf(i);
     busy.current = true;
-    setMoving({ i, dir: i > front ? 1 : -1 });
+    setMoving({ i, y: -depth * OFFSET, z: 10 - depth });
+    setChosen(next);
     setTimeout(() => {
-      setOrder((o) => [...o.filter((k) => k !== i), i]);
       setMoving(null);
       setTimeout(() => (busy.current = false), 500);
     }, SHUFFLE_OUT);
@@ -72,9 +113,6 @@ export default function ValueChainSection() {
       if (!near) return;
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        // entra como una hoja sobre el hero
-        stackedSheetEntrance(root.current);
-
         gsap
           .timeline({ scrollTrigger: { trigger: root.current, start: "top 75%", once: true } })
           .from("[data-vc-eline]", { scaleX: 0, transformOrigin: "0% 50%", duration: 0.5, ease: "power2.out" }, 0)
@@ -86,12 +124,12 @@ export default function ValueChainSection() {
             0.15,
           )
           .from("[data-vc-sub]", { y: 24, autoAlpha: 0, duration: 0.6, ease: "power3.out" }, 0.5)
-          .from("[data-vc-idx] > li", { x: -28, autoAlpha: 0, duration: 0.55, ease: "power3.out", stagger: 0.07 }, 0.55)
-          // las cartas se reparten de a una, rápido: cada una sube desde abajo y se apila sobre
-          // la anterior (01 primero, 05 al final, al frente). GSAP anima `transform`, que se suma
-          // al `translate`/`scale` del apilado sin pisarlo
-          .from("[data-vc-card]", { y: 140, autoAlpha: 0, duration: 0.5, ease: "power3.out", stagger: 0.16 }, 0.3);
+          .from("[data-vc-idx] > li", { x: -28, autoAlpha: 0, duration: 0.55, ease: "power3.out", stagger: 0.07 }, 0.55);
 
+        // Escritorio: la sección queda fija (sticky dentro de `track`, sin `pin` de GSAP para no
+        // generar layout shift) y cada tramo de scroll trae una carta desde abajo que se apila
+        // sobre la anterior: 01 primero, 05 al final, al frente. Al subir se van en orden inverso.
+        // GSAP anima `transform` de la envoltura, que se suma al `translate` del apilado sin pisarlo.
         gsap.utils.toArray<HTMLElement>("[data-vc-mcard]").forEach((card) => {
           gsap.from(card, {
             y: 40,
@@ -102,17 +140,101 @@ export default function ValueChainSection() {
           });
         });
       });
+      mm.add("(prefers-reduced-motion: no-preference) and (min-width: 1024px)", () => {
+        // ya se armó una vez: el mazo queda completo y la sección ya no se fija
+        if (played.current) return;
+        const cards = gsap.utils.toArray<HTMLElement>("[data-vc-card]");
+        const tl = gsap.timeline({
+          paused: true,
+          // el índice acompaña al mismo tiempo: se marca la carta apenas empieza a subir (la carta k
+          // arranca en el segundo k - 1 del timeline). La 01 ya está, así que siempre hay al menos 1.
+          onUpdate: () => {
+            const n = gsap.utils.clamp(1, cards.length, 1 + Math.ceil(tl.time() - 0.05));
+            setShown((s) => (s === n ? s : n));
+          },
+        });
+        // la 01 ya está puesta al llegar a la sección; desde la 02 suben de a una con el scroll
+        setShown(1);
+        cards.slice(1).forEach((card, k) => {
+          // cada carta empieza cuando termina la anterior → de 1 en 1
+          tl.from(card, { y: 220, ease: "power2.out", duration: 1 }, k)
+            // opaca casi al tiro: si se desvanecía todo el viaje, se veía la de atrás a través
+            .from(card, { autoAlpha: 0, ease: "none", duration: 0.15 }, k);
+        });
+        tl.to({}, { duration: 0.3 }); // pausa con el mazo completo antes de soltar la sección
+
+        /** Termina para siempre: el mazo se completa suave, se suelta el trigger y se quita el
+         *  espaciador, para que al subir la sección pase normal (sin quedarse fija). */
+        const ref: { st?: ScrollTrigger } = {};
+        const finish = () => {
+          if (played.current) return;
+          played.current = true;
+          ref.st?.kill();
+          gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true });
+          setShown(null);
+          const sp = spacer.current;
+          const sec = root.current;
+          if (!sp || !sec) return;
+          // al quitar el espaciador la sección cambia de lugar (deja de estar fija): se mide antes
+          // y después y el scroll se corre esa diferencia, así en pantalla nada se mueve
+          // (sirve igual al terminar el recorrido o a mitad, si se elige una carta del índice)
+          const before = sec.getBoundingClientRect().top;
+          sp.style.display = "none";
+          const diff = sec.getBoundingClientRect().top - before;
+          if (Math.abs(diff) > 0.5) shiftScroll(diff);
+          ScrollTrigger.refresh();
+        };
+        endIntro.current = finish;
+
+        // mientras se arma, el mazo sigue al scroll en los dos sentidos: al bajar trae la siguiente
+        // carta y al subir devuelve la anterior. Al terminar (onLeave) queda armado para siempre y
+        // desde ahí se cambia de carta solo con el índice.
+        let target = 0; // paso actual: cuántas cartas (además de la 01) ya subieron
+        // si la página carga ya pasada la sección, onLeave corre dentro de create (antes de asignar)
+        ref.st =ScrollTrigger.create({
+          trigger: track.current,
+          start: "top top", // la sección llega con la 01 puesta; la 02 sube al quedar fija
+          end: "bottom bottom", // fin del recorrido reservado por el espaciador
+          invalidateOnRefresh: true,
+          // por pasos: el recorrido se divide en un tramo por carta y apenas se entra a un tramo
+          // (un poquito de scroll) la carta sube completa sola, sin quedar a medio camino
+          onUpdate: (self) => {
+            const steps = cards.length - 1; // la 01 ya está puesta
+            // un tramo por carta, también para la 01: así se alcanza a leer antes de que suba la 02
+            // (antes la 02 subía apenas la sección quedaba fija)
+            const step = gsap.utils.clamp(0, steps, Math.floor(self.progress * cards.length));
+            if (step === target) return;
+            target = step;
+            // la carta k (desde la 02) termina de subir en el segundo k del timeline
+            gsap.to(tl, { time: step, duration: 0.6, ease: "power3.out", overwrite: true });
+          },
+          // pasado el final se suelta para siempre (al subir ya no se repite)
+          onLeave: (self) => {
+            self.kill();
+            finish();
+          },
+        });
+        // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
+        window.addEventListener(SKIP_INTRO_EVENT, finish);
+        return () => {
+          endIntro.current = null;
+          window.removeEventListener(SKIP_INTRO_EVENT, finish);
+          if (!played.current) setShown(null);
+        };
+      });
       return () => mm.revert();
     },
     { scope: root, dependencies: [near], revertOnUpdate: true },
   );
 
   return (
+    // escritorio: la sección queda sticky mientras se recorre el espaciador de abajo (las cartas)
+    <div ref={track} className="relative bg-white">
     <section
       ref={root}
       id="soluciones"
       // hoja que sube sobre el hero: esquinas redondeadas, sombra hacia arriba y por encima de él
-      className="relative z-10 rounded-t-[32px] bg-white pb-28 pt-24 text-[#21255c] shadow-[0_-30px_60px_-30px_rgba(13,16,48,0.45)] md:rounded-t-[48px] md:pb-40 md:pt-32 xl:pt-36"
+      className="relative overflow-x-clip bg-white pb-28 pt-24 text-[#21255c] md:pb-40 md:pt-32 lg:sticky lg:top-0 lg:flex lg:min-h-svh lg:items-center lg:py-20"
     >
       <div className="container-page grid gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:items-center lg:gap-12">
         {/* índice */}
@@ -130,31 +252,31 @@ export default function ValueChainSection() {
 
           <ol data-vc-idx className="mt-10 hidden space-y-1 lg:block">
             {steps.map((s, i) => {
-              const on = i === front;
+              const on = i === marked;
               return (
                 <li key={s.title}>
                   <button
                     type="button"
                     onClick={() => pick(i)}
                     aria-current={on}
-                    className={`group flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors duration-300 motion-reduce:transition-none ${
+                    className={`group flex w-full items-center cursor-pointer gap-4 rounded-xl px-3 py-3 text-left transition-colors duration-150 motion-reduce:transition-none ${
                       on ? "bg-[#dcebf3]/60" : "hover:bg-[#f5f6f8]"
                     }`}
                   >
                     <span className={`font-mono text-[12px] transition-opacity ${on ? "text-[#248caa]" : "text-[#21255c]/40"}`}>{pad(i)}</span>
                     <span
-                      className={`h-px flex-none bg-current transition-all duration-500 motion-reduce:transition-none ${
+                      className={`h-px flex-none bg-current transition-all duration-200 motion-reduce:transition-none ${
                         on ? "w-10 text-[#248caa]" : "w-6 text-[#21255c]/25 group-hover:w-8"
                       }`}
                     />
                     <span
-                      className={`flex-1 font-display text-[17px] font-semibold tracking-tight transition-opacity duration-300 xl:text-[19px] ${
+                      className={`flex-1 font-display text-[17px] font-semibold tracking-tight transition-opacity duration-150 xl:text-[19px] ${
                         on ? "opacity-100" : "opacity-40 group-hover:opacity-70"
                       }`}
                     >
                       {s.title}
                     </span>
-                    <span aria-hidden className={`transition-opacity duration-300 ${on ? "opacity-100" : "opacity-0"}`}>
+                    <span aria-hidden className={`transition-opacity duration-150 ${on ? "opacity-100" : "opacity-0"}`}>
                       →
                     </span>
                   </button>
@@ -167,26 +289,42 @@ export default function ValueChainSection() {
         {/* mazo (solo escritorio): más angosto que su columna, con aire a los lados para que el
             viaje de la carta al barajar quede a la vista */}
         <div
-          className="relative hidden w-full lg:mx-auto lg:block lg:max-w-[600px] xl:max-w-[680px]"
+          className="relative hidden w-full lg:mx-auto lg:block lg:max-w-[620px] xl:max-w-[700px]"
           style={{ height: CARD_H + OFFSET * (steps.length - 1) }}
         >
           {steps.map((s, i) => {
             const t = THEME[s.theme];
-            const depth = order.length - 1 - order.indexOf(i); // 0 = al frente
+            const isFront = i === front;
             const out = moving?.i === i;
+            // profundidad: 0 al frente; las demás en orden de lista, la más alta más atrás
+            const behind = steps.map((_, k) => k).filter((k) => k !== front);
+            const depth = isFront ? 0 : behind.length - behind.indexOf(i);
+            // mientras el mazo se arma con el scroll, la que va llegando se ve con su color pleno
+            // (sin velo) y solo se oscurecen las que ya quedaron debajo de ella
+            const building = shown !== null && shown < steps.length;
+            const dim = building ? Math.max(0, shown - 1 - i) : depth;
             return (
-              <article
+              // envoltura: la anima GSAP en la entrada (GSAP pasa el `translate`/`scale` de CSS del
+              // elemento que anima a su propio transform y los deja en `none`: si animara la
+              // tarjeta, el mazo perdería las posiciones). También lleva el z-index del apilado.
+              <div
                 key={s.title}
                 data-vc-card
+                className="pointer-events-none absolute inset-0"
+                // al salir conserva su z; ya invisible pasa al frente (z alto)
+                style={{ zIndex: out ? moving!.z : isFront ? 30 : 10 - depth }}
+              >
+              <article
                 onClick={() => pick(i)}
-                className={`absolute inset-x-0 bottom-0 overflow-hidden rounded-[28px] p-7 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] transition-[translate,scale] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none xl:p-9 ${t.card} ${
-                  depth ? "cursor-pointer" : ""
+                className={`pointer-events-auto absolute inset-x-0 bottom-0 overflow-hidden rounded-[28px] p-8 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] transition-[translate,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none xl:p-10 ${t.card} ${
+                  isFront ? "" : "cursor-pointer"
                 }`}
                 style={{
                   height: CARD_H,
-                  zIndex: out ? 50 : 10 - depth,
-                  translate: out ? `${moving!.dir * 55}% 0` : `0 ${-depth * OFFSET}px`,
-                  scale: out ? "1" : String(1 - depth * DEPTH_SCALE),
+                  // el frente abajo; las de atrás asoman su borde de ARRIBA (suben un paso por puesto)
+                  // al barajar la carta sale visible hacia la derecha (sin desvanecerse), por debajo
+                  // del mazo; afuera pasa al frente y vuelve deslizándose por encima de las demás
+                  translate: out ? `62% ${moving!.y}px` : `0 ${-depth * OFFSET}px`,
                   transformOrigin: "50% 100%",
                 }}
               >
@@ -201,8 +339,8 @@ export default function ValueChainSection() {
                   </span>
                 </div>
 
-                <h3 className="mt-5 font-display text-[26px] font-semibold tracking-tight xl:text-[32px]">{s.title}</h3>
-                <p className={`mt-2.5 max-w-[520px] text-[14px] leading-relaxed xl:text-[16px] ${t.muted}`}>{s.text}</p>
+                <h3 className="mt-5 font-display text-[28px] font-semibold tracking-tight xl:text-[34px]">{s.title}</h3>
+                <p className={`mt-3 max-w-[540px] text-[15px] leading-relaxed xl:text-[16px] ${t.muted}`}>{s.text}</p>
 
                 <ul className="mt-5 space-y-2.5">
                   {s.points.map((p) => (
@@ -221,17 +359,23 @@ export default function ValueChainSection() {
                   ))}
                 </ul>
 
-                {/* número fantasma */}
-                <span aria-hidden className="pointer-events-none absolute -right-3 -top-7 font-display text-[170px] font-bold leading-none tracking-tighter opacity-[0.07]">
+                {/* número fantasma: entra subiendo cuando la tarjeta llega al frente */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -right-3 -top-7 font-display text-[170px] font-bold leading-none tracking-tighter transition-[translate,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+                  // solo en la del frente: en las de atrás ensuciaba las franjas que asoman
+                  style={{ translate: isFront && !out ? "0 0" : "0 22px", opacity: isFront && !out ? 0.07 : 0 }}
+                >
                   {pad(i)}
                 </span>
                 {/* velo de profundidad: oscurece según cuántas tiene delante */}
                 <span
                   aria-hidden
                   className="pointer-events-none absolute inset-0 bg-[#0d1030] transition-opacity duration-500 motion-reduce:transition-none"
-                  style={{ opacity: out ? 0 : depth * DEPTH_DIM }}
+                  style={{ opacity: out ? 0 : dim * DEPTH_DIM }}
                 />
               </article>
+              </div>
             );
           })}
         </div>
@@ -276,7 +420,9 @@ export default function ValueChainSection() {
       </div>
 
       {/* se oscurece cuando la sección siguiente sube por encima (lo anima ServicesSection) */}
-      <div data-stack-dim aria-hidden className="pointer-events-none absolute inset-0 z-50 bg-[#0d1030] opacity-0" />
     </section>
+    {/* recorrido de scroll de las cartas (solo escritorio): ~35vh por carta + pausa final */}
+    <div ref={spacer} aria-hidden className="hidden h-[120vh] lg:block" />
+    </div>
   );
 }

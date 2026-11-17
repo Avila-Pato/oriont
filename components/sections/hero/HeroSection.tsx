@@ -56,7 +56,6 @@ export default function HeroSection() {
       </div>
 
       {/* se oscurece cuando la "Cadena de valor" sube por encima (lo anima esa sección) */}
-      <div data-stack-dim aria-hidden className="pointer-events-none absolute inset-0 z-50 bg-[#0d1030] opacity-0" />
     </section>
   );
 }

@@ -59,7 +59,7 @@ export default function PreviewCadenaLista() {
                   onMouseEnter={() => setActive(i)}
                   onPointerDown={() => (wasOpen.current = active === i)}
                   onClick={() => setActive(wasOpen.current ? null : i)}
-                  className="absolute inset-x-0 top-0 cursor-pointer border-t border-[#21255c]/12 transition-[translate] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  className="absolute inset-x-0 top-0 cursor-pointer border-t  border-[#21255c]/12 transition-[translate] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                   style={{ height: OPEN, translate: `0 ${y}px` }}
                 >
                   <div className="flex items-center gap-6 md:gap-10" style={{ height: ROW }}>
@@ -86,7 +86,7 @@ export default function PreviewCadenaLista() {
                     </ul>
                     <span
                       aria-hidden
-                      className={`grid h-10 w-10 place-items-center rounded-full border text-lg transition-[rotate,background-color,color,border-color] duration-500 ${
+                      className={`grid  h-10 w-10 place-items-center rounded-full border text-lg transition-[rotate,background-color,color,border-color] duration-500 ${
                         on ? "rotate-90 border-[#21255c] bg-[#21255c] text-white" : "border-[#21255c]/20 text-[#21255c]/50"
                       }`}
                     >

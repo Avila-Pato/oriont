@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Globe from "./Globe";
 import { COUNTRIES, type CountryCode } from "@/data/countries";
 import CountryFlag from "@/components/ui/CountryFlag";
@@ -25,6 +25,9 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
   // el canvas ya pintó su primer frame: el placeholder de CSS se desvanece
   const [ready, setReady] = useState(false);
   const now = useClock();
+  // botón donde se apretó el puntero (para no elegir otro país al soltar)
+  const pressed = useRef<CountryCode | null>(null);
+  const toggle = (code: CountryCode) => setSelected((s) => (s === code ? null : code));
   const active = hovered ?? selected;
   const info = COUNTRIES.find((c) => c.code === active);
   const others = COUNTRIES.filter((c) => c.code !== active);
@@ -110,24 +113,32 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
 
       {/* selector de países */}
       <div className="absolute inset-x-0 -bottom-2 flex justify-center">
-        <div
-          className="flex items-center gap-1 rounded-full border border-[#21255c]/10 bg-white/85 p-1 shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl"
-          onMouseLeave={() => setHovered(null)}
-        >
+        <div className="flex items-center gap-1 rounded-full border border-[#21255c]/10 bg-white/85 p-1 shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl">
           {COUNTRIES.map((c) => {
             const on = active === c.code;
             return (
               <button
                 key={c.code}
                 type="button"
-                // en táctil el toque no debe dejar un "hover" pegado: solo mouse y teclado
-                onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(c.code)}
-                onFocus={(e) => e.currentTarget.matches(":focus-visible") && setHovered(c.code)}
-                onBlur={() => setHovered(null)}
-                onClick={() => setSelected((s) => (s === c.code ? null : c.code))}
+                // pasar el mouse por los botones solo cambia su color: el globo y la tarjeta
+                // cambian recién al hacer click (si no, el globo se movía siguiendo al mouse)
+                // Se elige al soltar, y solo si se apretó y se soltó sobre este mismo botón: apretar en
+                // Chile y soltar en Colombia (o arrastrar el dedo afuera) no cambia la selección.
+                onPointerDown={() => (pressed.current = c.code)}
+                onPointerCancel={() => (pressed.current = null)}
+                onPointerUp={(e) => {
+                  const from = pressed.current;
+                  pressed.current = null;
+                  if (from !== c.code) return;
+                  // en táctil el pointerup llega al botón donde empezó aunque el dedo ya esté en otro
+                  const under = document.elementFromPoint(e.clientX, e.clientY);
+                  if (under && e.currentTarget.contains(under)) toggle(c.code);
+                }}
+                // teclado (Enter / Espacio): el click llega sin puntero (detail = 0)
+                onClick={(e) => e.detail === 0 && toggle(c.code)}
                 aria-pressed={selected === c.code}
-                className={`flex touch-manipulation items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
-                  on ? "bg-[#21255c] text-[#f5f0e6]" : "text-[#21255c]/75 hover:text-[#21255c]"
+                className={`flex cursor-pointer touch-manipulation items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
+                  on ? "bg-[#21255c] text-[#f5f0e6]" : "text-[#21255c]/75 hover:bg-[#21255c]/8 hover:text-[#21255c]"
                 }`}
               >
                 <CountryFlag code={c.code} className={`size-5 transition-shadow ${on ? "ring-2 ring-white/70 rounded-full" : ""}`} />
