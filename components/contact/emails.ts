@@ -12,8 +12,9 @@ import { CONTACT_FORM } from "@/data/about";
 /** Alias de remitente configurado en la Function (shared/config.py). Soporta solo GRAPH. */
 export const MAIL_FROM_ALIAS = "no-responder";
 export const MAIL_PROVIDER = "GRAPH";
-/** Casilla interna que recibe el aviso de cada contacto. */
-export const MAIL_ADMIN_TO = CONTACT_FORM.to;
+/** Casilla interna que recibe el aviso de cada contacto. NEXT_PUBLIC_CONTACT_ADMIN_TO (opcional,
+ *  solo en .env.local) la reemplaza para pruebas: así el aviso no le llega a contacto@. */
+export const MAIL_ADMIN_TO = process.env.NEXT_PUBLIC_CONTACT_ADMIN_TO || CONTACT_FORM.to;
 
 const wrap = (content: string) => `<!doctype html>
 <html lang="es"><body style="margin:0;padding:24px;background:#f5f0e6;font-family:Arial,Helvetica,sans-serif;color:#21255c">
