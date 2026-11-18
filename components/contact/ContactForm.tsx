@@ -112,6 +112,12 @@ const FIELDS: Field[] = [
   },
 ];
 
+/** Registro en la consola del navegador (filtrar por "[contacto]"): captcha, envío y respuesta.
+ *  No muestra el token. Ojo: MailSender responde 202 aunque bloquee el envío, así que un 202
+ *  aquí solo confirma que la Function lo recibió; el motivo de un bloqueo queda en sus logs
+ *  ("AntiSpam EVAL"). */
+const log = (...args: unknown[]) => console.info("[contacto]", ...args);
+
 /** ancho mínimo del widget Turnstile en tamaño "flexible" (px) */
 const TURNSTILE_MIN_W = 300;
 
@@ -155,6 +161,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
       // se mide recién aquí: en el drawer cerrado (display: none) el ancho al montar es 0
       const small = el.clientWidth < TURNSTILE_MIN_W;
       setCompact(small);
+      log("cargando Turnstile, site key", `${TURNSTILE_SITE_KEY.slice(0, 8)}…`, small ? "(compacto)" : "");
       loadTurnstile()
         .then((ts) => {
           if (cancelled) return;
@@ -164,19 +171,24 @@ export default function ContactForm({ className = "" }: { className?: string }) 
             theme: "light",
             size: small ? "compact" : "flexible",
             callback: (token: string) => {
+              log("Turnstile OK: token recibido", `(${token.length} caracteres)`);
               tokenRef.current = token;
               setCaptchaFailed(false);
               setStatus((s) => (s === "captcha" ? "idle" : s));
             },
             "expired-callback": () => {
+              log("Turnstile: el token venció (se pide otro)");
               tokenRef.current = null;
             },
-            "error-callback": () => {
+            "error-callback": (code: string) => {
+              // 110200 = dominio no está en los Hostnames del widget · 400020 = site key inválida
+              log("Turnstile ERROR", code);
               tokenRef.current = null;
             },
           });
         })
-        .catch(() => {
+        .catch((err) => {
+          log("Turnstile: no se pudo cargar el script", err);
           if (!cancelled) setCaptchaFailed(true);
         });
     };
@@ -247,10 +259,12 @@ export default function ContactForm({ className = "" }: { className?: string }) 
 
     const token = tokenRef.current;
     if (!CONTACT_ENDPOINT) {
+      log("falta NEXT_PUBLIC_CONTACT_ENDPOINT: no se envía");
       setStatus("error");
       return;
     }
     if (!token) {
+      log("sin token de Turnstile todavía: no se envía");
       setStatus("captcha");
       return;
     }
@@ -281,6 +295,13 @@ export default function ContactForm({ className = "" }: { className?: string }) 
     };
 
     setStatus("sending");
+    const secs = (Date.now() - loadTime.current) / 1000;
+    log("enviando a", CONTACT_ENDPOINT, {
+      mensajes: [userPayload, adminPayload].map((m) => ({ to: m.to, subject: m.subject, fromAlias: m.fromAlias, provider: m.provider })),
+      segundosDesdeCarga: Math.round(secs * 10) / 10, // MailSender bloquea si son menos de 3
+      honeypotVacio: !data.get("_hp"),
+    });
+    if (secs < 3) log("ATENCIÓN: menos de 3 s desde la carga: MailSender lo va a bloquear (too_fast)");
     try {
       const res = await fetch(CONTACT_ENDPOINT, {
         method: "POST",
@@ -293,10 +314,14 @@ export default function ContactForm({ className = "" }: { className?: string }) 
         }),
         signal: AbortSignal.timeout(15000),
       });
+      const text = await res.text().catch(() => "");
+      log("respuesta", res.status, text, res.ok ? "(recibido por la Function; si no llega el correo, revisar sus logs)" : "");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       form.reset();
       setStatus("sent");
-    } catch {
+    } catch (err) {
+      // TypeError "Failed to fetch" = red o CORS (el origen no está permitido en la Function)
+      log("ERROR al enviar", err);
       setStatus("error");
     } finally {
       // cada token sirve una sola vez: pedir uno nuevo para el próximo envío
@@ -342,8 +367,27 @@ export default function ContactForm({ className = "" }: { className?: string }) 
     <form
       onSubmit={onSubmit}
       noValidate
-      className={`w-full rounded-3xl bg-white p-6 text-left shadow-[0_40px_80px_-30px_rgba(0,0,0,0.45)] sm:p-8 2xl:p-10 lg:short:p-6 ${className}`}
+      className={`relative w-full rounded-3xl bg-white p-6 text-left shadow-[0_40px_80px_-30px_rgba(0,0,0,0.45)] sm:p-8 2xl:p-10 lg:short:p-6 ${className}`}
     >
+      {/* Aviso de enviado: cubre el formulario (absoluto, sin mover nada de la página) con un
+          fundido. Antes solo cambiaba el texto gris junto al botón y pasaba desapercibido. */}
+      <div
+        role="status"
+        aria-hidden={status !== "sent"}
+        className={`absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[inherit] bg-white p-8 text-center transition-opacity duration-300 ${
+          status === "sent" ? "opacity-100" : "pointer-events-none invisible opacity-0"
+        }`}
+      >
+        <span className="grid h-14 w-14 place-items-center rounded-full bg-[#248caa]/12 text-[#248caa]">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        </span>
+        <p className="mt-5 font-display text-[24px] font-semibold leading-tight text-[#21255c] 2xl:text-[30px]">
+          ¡Mensaje enviado correctamente!
+        </p>
+      </div>
+
       <p className="font-display text-[22px] font-semibold leading-tight text-[#21255c] 2xl:text-[28px]">
         {CONTACT_FORM.title}
       </p>
