@@ -51,7 +51,7 @@ export default function ServicesSection() {
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#21255c] p-3 text-[#f5f0e6] xl:h-16 xl:w-16 xl:p-3.5">
             <IconPeople />
           </span>
-          <h2 className="mt-5 font-display text-[28px] font-semibold leading-tight tracking-tight md:text-[40px] xl:text-[48px]">
+          <h2 className="mt-5 font-display text-[28px] font-semibold leading-tight tracking-tight md:text-[40px] xl:text-[48px] lg:short:mt-4 xl:short:text-[42px]">
             Así llegamos a tus <span className="text-[#248caa]">clientes</span>
           </h2>
           <p className="mt-3 max-w-[480px] text-[15px] leading-relaxed text-[#21255c]/70 xl:mt-5 xl:max-w-[560px] xl:text-[18px]">
@@ -109,7 +109,7 @@ function BrandStats({ stats, on, muted }: { stats: BrandStat[]; on: boolean; mut
         <div key={s.label} className="flex gap-3 md:gap-6">
           {i > 0 && <span data-bline aria-hidden className="w-px origin-top bg-[#f5f0e6]/15" />}
           <div data-bstat>
-            <p className="whitespace-nowrap font-display text-[26px] font-semibold leading-none tracking-tight sm:text-[34px] md:text-[44px] xl:text-[56px]">
+            <p className="whitespace-nowrap font-display text-[26px] font-semibold leading-none tracking-tight sm:text-[34px] md:text-[44px] xl:text-[56px] lg:short:text-[40px]">
               <span className="text-[#8fcbef]">{s.prefix}</span>
               {/* el valor final (invisible) reserva el ancho; el contador va encima y no empuja el sufijo */}
               <span className="relative inline-block">
@@ -214,7 +214,7 @@ function BrandPanels() {
 
   return (
     <div
-      className="mt-12 hidden lg:relative lg:block lg:h-[560px] lg:drop-shadow-[0_24px_24px_rgba(33,37,92,0.22)] lg:@container xl:mt-16 xl:h-[min(600px,82vh)]"
+      className="mt-12 hidden lg:relative lg:block lg:h-[560px] lg:drop-shadow-[0_24px_24px_rgba(33,37,92,0.22)] lg:@container xl:mt-16 xl:h-[min(600px,82vh)] lg:short:mt-10 lg:short:h-[min(520px,72vh)]"
       style={{ "--u": PANEL_UNIT } as CSSProperties}
     >
       {/* tarjetas cerradas */}
@@ -241,16 +241,18 @@ function BrandPanels() {
               onFocus={() => go(i)}
               aria-expanded={on}
               aria-label={`Ver ${b.name}`}
-              className={`absolute inset-0 flex items-center justify-between px-5 text-left sm:px-7 transition-opacity duration-300 focus-visible:outline-none lg:right-auto lg:w-(--u) lg:flex-col lg:items-start lg:justify-between lg:py-8 ${
+              className={`absolute inset-0 flex items-center justify-between px-5 text-left sm:px-7 transition-opacity duration-300 focus-visible:outline-none lg:right-auto lg:w-(--u) lg:flex-col lg:items-start lg:justify-between lg:py-8 lg:short:py-6 ${
                 on ? "pointer-events-none opacity-0" : "opacity-100 delay-200"
               }`}
             >
               <span className={`font-mono text-[12px] tracking-[0.2em] xl:text-[13px] ${t.muted}`}>{String(i + 1).padStart(2, "0")}</span>
-              <span className="inline-flex items-center gap-[0.35em] font-display text-[18px] font-semibold sm:text-[22px] leading-none tracking-tight lg:rotate-180 lg:text-[26px] lg:[writing-mode:vertical-rl] xl:text-[30px]">
+              <span className="inline-flex items-center gap-[0.35em] font-display text-[18px] font-semibold sm:text-[22px] leading-none tracking-tight lg:rotate-180 lg:text-[26px] lg:[writing-mode:vertical-rl] xl:text-[30px] lg:short:text-[24px]">
                 {b.name}
                 {b.icon && typeof b.icon !== "string" ? (
-                  // mismo alto que el texto; contrarrotado para que no quede de cabeza en la tarjeta vertical
-                  <Image src={b.icon} alt="" width={64} height={64} className="h-[1.05em] w-[1.05em] shrink-0 object-contain lg:rotate-180" />
+                  // mismo alto que el texto; en la tarjeta vertical va de lado igual que el texto (se lee
+                  // de abajo hacia arriba): la imagen no gira con writing-mode, así que con el
+                  // rotate-180 del padre le falta un cuarto de vuelta (180 + 90 = -90)
+                  <Image src={b.icon} alt="" width={64} height={64} className="h-[1.05em] w-[1.05em] shrink-0 object-contain lg:rotate-90" />
                 ) : (
                   b.icon && <span>{b.icon}</span>
                 )}
@@ -263,7 +265,7 @@ function BrandPanels() {
             {/* abierto: info */}
             <div
               aria-hidden={!on}
-              className={`absolute inset-0 flex flex-col justify-between p-5 transition-[opacity,translate] sm:p-7 md:p-10 lg:max-w-[680px] xl:p-12 ${
+              className={`absolute inset-0 flex flex-col justify-between p-5 transition-[opacity,translate] sm:p-7 md:p-10 lg:max-w-[680px] xl:p-12 lg:short:p-8 ${
                 on ? "translate-y-0 opacity-100 delay-200 duration-500" : "pointer-events-none translate-y-4 opacity-0 duration-200"
               }`}
             >
@@ -277,11 +279,11 @@ function BrandPanels() {
               {b.stats && <BrandStats stats={b.stats} on={on} muted={t.muted} />}
 
               <div>
-                <h3 className="font-display text-[20px] font-semibold leading-tight tracking-tight sm:text-[24px] md:text-[32px] xl:text-[36px]">{b.tagline}</h3>
-                <p className={`mt-2 max-w-[480px] text-[13px] leading-snug sm:mt-3 sm:text-[14px] sm:leading-relaxed md:text-[16px] xl:mt-4 xl:max-w-[600px] xl:text-[19px] ${t.muted}`}>{b.text}</p>
-                <ul className="mt-3 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">
+                <h3 className="font-display text-[20px] font-semibold leading-tight tracking-tight sm:text-[24px] md:text-[32px] xl:text-[36px] lg:short:text-[28px]">{b.tagline}</h3>
+                <p className={`mt-2 max-w-[480px] text-[13px] leading-snug sm:mt-3 sm:text-[14px] sm:leading-relaxed md:text-[16px] xl:mt-4 xl:max-w-[600px] xl:text-[19px] lg:short:mt-2 lg:short:text-[15px] ${t.muted}`}>{b.text}</p>
+                <ul className="mt-3 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2 lg:short:mt-3">
                   {b.tags.map((tag) => (
-                    <li key={tag} className={`rounded-full border px-3 py-1 text-[11px] font-medium sm:px-3.5 sm:py-1.5 sm:text-[12px] xl:px-5 xl:py-2 xl:text-[14px] ${t.chip}`}>
+                    <li key={tag} className={`rounded-full border px-3 py-1 text-[11px] font-medium sm:px-3.5 sm:py-1.5 sm:text-[12px] xl:px-5 xl:py-2 xl:text-[14px] lg:short:px-3.5 lg:short:py-1 lg:short:text-[12px] ${t.chip}`}>
                       {tag}
                     </li>
                   ))}
@@ -290,7 +292,7 @@ function BrandPanels() {
                   href={b.href}
                   {...externalLink(b.href)}
                   tabIndex={on ? 0 : -1}
-                  className={`group mt-4 inline-flex items-center gap-2 rounded-full py-1.5 pl-4 pr-1.5 text-[12px] sm:mt-7 sm:py-2 sm:pl-5 sm:pr-2 sm:text-[13px] font-medium transition hover:opacity-90 ${t.cta}`}
+                  className={`group mt-4 inline-flex items-center gap-2 rounded-full py-1.5 pl-4 pr-1.5 text-[12px] sm:mt-7 lg:short:mt-4 sm:py-2 sm:pl-5 sm:pr-2 sm:text-[13px] font-medium transition hover:opacity-90 ${t.cta}`}
                 >
                   Conocer {b.name}
                   <span className="grid h-7 w-7 place-items-center rounded-full bg-current/15 transition group-hover:translate-x-0.5">

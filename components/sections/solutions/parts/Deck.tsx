@@ -22,7 +22,10 @@ export default function Deck({ front, moving, shown, onPick }: DeckProps) {
   const building = shown !== null && shown < steps.length;
   return (
     <div
-      className="relative hidden w-full lg:mx-auto lg:block lg:max-w-[620px] xl:max-w-[700px]"
+      // pantallas bajas: el mazo se achica con `scale` (sin reflow) y el margen negativo devuelve
+      // el alto que deja libre (575px × 0.08 ≈ 46px → 23px arriba y abajo). Pantallas anchas y altas:
+      // se agranda igual (×1.15 → 86px más → 43px arriba y abajo)
+      className="relative hidden w-full lg:mx-auto lg:block lg:max-w-[620px] xl:max-w-[700px] lg:short:-my-[23px] lg:short:scale-92 2xl:tall:my-[43px] 2xl:tall:scale-115"
       style={{ height: CARD_H + OFFSET * (steps.length - 1) }}
     >
       {steps.map((s, i) => {

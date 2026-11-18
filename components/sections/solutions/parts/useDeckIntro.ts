@@ -106,9 +106,17 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           // cada carta empieza cuando termina la anterior → de 1 en 1
           // ease suave aquí: la curva fuerte la pone el tween que mueve el timeline (abajo); si las
           // dos eran "out" se sumaban y la carta salía disparada al inicio
+          // como repartir una carta a mano: llega levantada (algo más grande, más cerca de quien
+          // mira) y girada unos grados, y se endereza y "cae" sobre el mazo al final, con un
+          // asentamiento mínimo. Todo en el transform de la envoltura (sin reflow)
           tl.from(card, { y: 220, ease: "power1.out", duration: 1 }, k)
-            // opaca pronto: si se desvanecía todo el viaje, se veía la de atrás a través
-            .from(card, { autoAlpha: 0, ease: "none", duration: 0.25 }, k);
+            .from(
+              card,
+              { rotation: k % 2 ? 4 : -4, scale: 1.05, transformOrigin: "50% 100%", ease: "back.out(1.4)", duration: 1 },
+              k,
+            )
+            // aparece casi al tiro (es una carta que entra, no un fantasma que se materializa)
+            .from(card, { autoAlpha: 0, ease: "none", duration: 0.1 }, k);
         });
         tl.to({}, { duration: 0.3 }); // pausa con el mazo completo antes de soltar la sección
 

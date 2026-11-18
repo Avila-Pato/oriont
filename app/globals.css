@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* pantallas bajas (anchas pero de poca altura, p. ej. laptops 1366×768 con barra del navegador):
+   clase `short:` para compactar lo que se diseñó pensando en alto de sobra */
+@custom-variant short (@media (max-height: 820px));
+/* pantallas altas: hay alto de sobra, se puede agrandar. Clase `tall:` */
+@custom-variant tall (@media (min-height: 900px));
+
 :root {
   --background: #F8F9F9;
   --foreground: #21255c;

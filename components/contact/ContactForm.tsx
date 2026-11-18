@@ -323,7 +323,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
     <form
       onSubmit={onSubmit}
       noValidate
-      className={`w-full rounded-3xl bg-white p-6 text-left shadow-[0_40px_80px_-30px_rgba(0,0,0,0.45)] sm:p-8 2xl:p-10 ${className}`}
+      className={`w-full rounded-3xl bg-white p-6 text-left shadow-[0_40px_80px_-30px_rgba(0,0,0,0.45)] sm:p-8 2xl:p-10 lg:short:p-6 ${className}`}
     >
       <p className="font-display text-[22px] font-semibold leading-tight text-[#21255c] 2xl:text-[28px]">
         {CONTACT_FORM.title}
@@ -333,7 +333,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
         Los campos con <span className="text-[#248caa]">*</span> son obligatorios.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:gap-5">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:gap-5 lg:short:mt-4 lg:short:gap-3">
         {FIELDS.map((f) => {
           const inputId = `${id}-${f.name}`;
           const errId = `${inputId}-error`;
@@ -360,7 +360,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
               <div className="relative">
                 {f.type === "textarea" ? (
                   // texto multilínea (mensaje): 4 filas de alto, sin tirador para no mover el layout
-                  <textarea {...common} rows={4} className={`${field(!!err)} resize-none`} />
+                  <textarea {...common} rows={4} className={`${field(!!err)} resize-none lg:short:h-22`} />
                 ) : (
                   // una sola línea: `type` valida el formato y `inputMode` elige el teclado en móvil
                   <input {...common} type={f.type} inputMode={f.inputMode} className={field(!!err)} />
@@ -399,7 +399,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
       {/* widget de Cloudflare Turnstile: alto reservado (65 px; 140 px el compacto de celular) para
           que al cargar no mueva el layout. El alto se fija al medir, ~200 px antes de verse */}
       {TURNSTILE_SITE_KEY && (
-        <div className={`mt-5 ${compact ? "min-h-35" : "min-h-16.25"}`}>
+        <div className={`mt-5 lg:short:mt-3 ${compact ? "min-h-35" : "min-h-16.25"}`}>
           <div ref={boxRef} />
           {captchaFailed && (
             <p className="text-[12px] text-[#c2410c]">
@@ -409,7 +409,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 lg:short:mt-4">
         {/* aria-live: el lector de pantalla anuncia el resultado al enviar */}
         <p aria-live="polite" className={`text-[12px] 2xl:text-[13px] ${statusBad ? "text-[#c2410c]" : "text-[#21255c]/50"}`}>
           {statusText}

@@ -229,7 +229,7 @@ export default function AboutSection() {
               // arranca antes de que la sección quede fija: al llegar ya se está moviendo
               start: "top 20%",
               end: "bottom bottom",
-              scrub: 0.5, // suavidad respecto a a la rueda
+              scrub: 1, // suavidad respecto a la rueda: más alto = la animación alcanza al scroll con más inercia (más fluido)
               invalidateOnRefresh: true,
             },
           })
@@ -260,7 +260,7 @@ export default function AboutSection() {
             HOLD + 0.65,
           )
           .fromTo("[data-stage-arrow]", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: "power3.out" }, HOLD + 1.1)
-          .to({}, { duration: 0.5 }) // pausa leyendo el llamado
+          .to({}, { duration: 0.1 }) // pausa corta en el llamado: apenas se lee, el formulario viene enseguida
           // 3) la imagen del centro toma la pantalla
           .addLabel("expand")
           .to("[data-stage-cta] > * > *", { autoAlpha: 0, y: -40, duration: 0.35, ease: "power2.in", stagger: 0.03 }, "expand")
@@ -271,6 +271,7 @@ export default function AboutSection() {
           .fromTo(
             expand.current,
             { clipPath: cardClip },
+            // duracion de la foto central se posiciona
             { clipPath: "inset(0px 0px 0px 0px round 0px)", duration: 1, ease: "power3.inOut" },
             "expand",
           )
@@ -282,12 +283,12 @@ export default function AboutSection() {
             "expand",
           )
           // el velo azul entra con fundido mientras se abre (antes aparecía de golpe)
-          .fromTo("[data-expand-shade]", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power1.inOut" }, "expand+=0.3")
+          .fromTo("[data-expand-shade]", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power1.inOut" }, "expand+=0.2")
           .fromTo(
             "[data-expand-content] > *",
             { autoAlpha: 0, y: 50 },
             { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.1 },
-            "expand+=0.4", // velocidad en la que aparece 
+            "expand+=0.25", // cuánto después de empezar a abrirse la foto aparece el formulario
           )
           .to({}, { duration: 0.15 }); // pausa con el formulario antes de soltar el pin
 
@@ -298,8 +299,8 @@ export default function AboutSection() {
   );
 
   return (
-    // escritorio: alto de la sección + 340vh de recorrido; la sección queda sticky mientras dura
-    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+260vh)]">
+    // escritorio: alto de la sección + 280vh de recorrido; la sección queda sticky mientras dura
+    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+280vh)]">
     <section
       ref={scope}
       className="relative flex w-full flex-col items-center overflow-hidden px-4 py-24 lg:sticky lg:top-0 lg:block lg:p-0"
@@ -386,7 +387,7 @@ export default function AboutSection() {
         <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-[#21255c]/95 via-[#21255c]/80 to-[#21255c]/45 opacity-0" />
         <div
           data-expand-content
-          className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0"
+          className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 short:pb-4 short:pt-24 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0"
         >
           <ContactIntro />
           <ContactForm className="max-w-[640px] justify-self-end 2xl:max-w-[760px]" />
@@ -577,13 +578,13 @@ function ContactIntro() {
         <span className="h-px w-8 bg-[#7fd0e6]/60 xl:w-12" />
         {ABOUT_CTA.eyebrow}
       </p>
-      <h3 className="mt-5 font-display text-[44px] font-semibold leading-[1.02] tracking-tight xl:text-[56px] 2xl:text-[clamp(60px,4.2vw,92px)]">
+      <h3 className="mt-5 font-display text-[44px] font-semibold leading-[1.02] tracking-tight xl:text-[56px] 2xl:text-[clamp(60px,4.2vw,92px)] short:mt-3 xl:short:text-[48px] 2xl:short:text-[52px]">
         {ABOUT_CTA.title} <span className="text-[#7fd0e6]">{ABOUT_CTA.highlight}</span>
       </h3>
-      <p className="mt-6 max-w-[520px] text-[16px] leading-relaxed text-white/75 xl:text-[18px] 2xl:max-w-[620px] 2xl:text-[21px]">
+      <p className="mt-6 max-w-[520px] text-[16px] leading-relaxed text-white/75 xl:text-[18px] 2xl:max-w-[620px] 2xl:text-[21px] short:mt-4 xl:short:text-[17px] 2xl:short:text-[18px]">
         {ABOUT_CTA.text}
       </p>
-      <ul className="mt-10 flex flex-col gap-5 border-t border-white/15 pt-8">
+      <ul className="mt-10 flex flex-col gap-5 border-t border-white/15 pt-8 short:mt-6 short:gap-3 short:pt-5">
         {ABOUT_CTA.contact.map((c) => (
           <li key={c.label} className="flex items-center gap-4">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-[#7fd0e6] 2xl:h-12 2xl:w-12">

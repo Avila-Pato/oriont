@@ -30,8 +30,8 @@ gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, MotionPathPlugin, useGSAP);
  *   aparecen huecos). El giro se pausa fuera de pantalla.
  * Rendimiento: cada anillo son 3 trazos (tramos, conectores, puntos) en vez de ~40 elementos, y la
  * entrada anima un solo valor (el radio del recorte) en vez de cientos de trazos por frame.
- * - Al pasar el cursor por un logo, una señal celeste viaja por su trazo hasta la marca del grupo
- *   más cercana (con el scroll los logos solo toman su color: SponsorScrollColor).
+ * - Al pasar el cursor por un logo, una señal celeste viaja en línea recta hasta el primer arco del
+ *   abanico, a un punto distinto cada vez (con el scroll los logos solo toman su color: SponsorScrollColor).
  * - La entrada de los logos la hace SponsorsReveal ([data-logo-cell]).
  * Va a todo el ancho de la pantalla (IndustriesSection lo pone fuera del contenedor) para que el abanico
  * vaya de borde a borde. Arcos circulares (sin deformar): los grandes se recortan arriba y abajo.
@@ -43,7 +43,7 @@ const W = 1500;
 const H = 600;
 const C = { x: 50, y: H / 2 }; // centro de los arcos: al medio del borde izquierdo
 const R_MAX = 1500; // radio del arco más grande (ahí ya se desvaneció)
-/** las 3 marcas del grupo sobre un arco chico alrededor del centro (Oriont al medio); las señales llegan a su borde */
+/** las 3 marcas del grupo sobre un arco chico alrededor del centro (Oriont al medio) */
 const HUB_ARC = 150;
 const HUBS = (
   [
@@ -94,12 +94,18 @@ const arcLen = (r: number, lo: number, hi: number) => {
   return len;
 };
 
-/** trazo de la señal: del logo en línea recta al borde de la marca del grupo más cercana */
-const toNearestHub = (n: { x: number; y: number }) => {
-  const gap = (h: (typeof HUBS)[number]) => Math.hypot(n.x - h.x, n.y - h.y) - h.r;
-  const h = HUBS.reduce((a, b) => (gap(b) < gap(a) ? b : a));
-  const d = Math.hypot(n.x - h.x, n.y - h.y);
-  return `M${n.x} ${n.y}L${r1(h.x + ((n.x - h.x) / d) * h.r)} ${r1(h.y + ((n.y - h.y) / d) * h.r)}`;
+/** primer arco del abanico: ahí termina la señal (no llega a las marcas del grupo) */
+const FIRST_RING = 250;
+/** cuánto puede desviarse (grados, a cada lado) el punto de llegada respecto del ángulo del logo.
+ *  Con el anillo con logos más chico (330) y ±30° la recta no se mete dentro del primer arco */
+const SIGNAL_SPREAD = 30;
+
+/** trazo de la señal: del logo en línea recta hasta un punto del primer arco, `jitter` grados
+ *  (-1..1 × SIGNAL_SPREAD) corrido del ángulo del logo */
+const toFirstRing = (n: { x: number; y: number }, jitter = 0) => {
+  const deg = (Math.atan2(n.y - C.y, n.x - C.x) * 180) / Math.PI + jitter * SIGNAL_SPREAD;
+  const p = pt(FIRST_RING, deg);
+  return `M${n.x} ${n.y}L${r1(p.x)} ${r1(p.y)}`;
 };
 
 /** azar con semilla (mulberry32) */
@@ -161,7 +167,7 @@ const DRAWING = (() => {
     for (let i = 0; i < n; i++) {
       const deg = lo + step * (i + OFFSET[ri]);
       const p = { x: r1(pt(r, deg).x), y: r1(pt(r, deg).y) };
-      nodes.push({ ...p, trace: toNearestHub(p) });
+      nodes.push({ ...p, trace: toFirstRing(p) });
     }
   });
   return { rings, nodes };
@@ -234,8 +240,8 @@ export default function SponsorCircuit() {
           onToggle: (self) => (self.isActive ? play() : pause()),
         });
 
-        // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta la marca
-        // del grupo más cercana (con el scroll no: los logos solo toman su color)
+        // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta el primer
+        // arco del abanico (con el scroll no: los logos solo toman su color)
         const cells = q<HTMLElement>("[data-logo-cell]");
         const traces = q<SVGPathElement>("[data-trace]");
         const sparks = q<SVGCircleElement>("[data-spark]");
@@ -243,6 +249,8 @@ export default function SponsorCircuit() {
         const signal = (i: number) => {
           if (busy.has(i)) return;
           busy.add(i);
+          // cada vez llega a un punto distinto del primer arco (al azar)
+          traces[i].setAttribute("d", toFirstRing(DRAWING.nodes[i], Math.random() * 2 - 1));
           gsap
             .timeline({ onComplete: () => busy.delete(i) })
             .set([traces[i], sparks[i]], { opacity: 1 })
