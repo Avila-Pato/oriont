@@ -151,36 +151,55 @@ export default function ContactForm({ className = "" }: { className?: string }) 
     if (!near || !el || !TURNSTILE_SITE_KEY) return;
     let cancelled = false;
 
-    // se mide recién aquí: en el drawer cerrado (display: none) el ancho al montar es 0
-    const small = el.clientWidth < TURNSTILE_MIN_W;
-    setCompact(small);
-    loadTurnstile()
-      .then((ts) => {
-        if (cancelled) return;
-        widgetRef.current = ts.render(el, {
-          sitekey: TURNSTILE_SITE_KEY,
-          language: "es",
-          theme: "light",
-          size: small ? "compact" : "flexible",
-          callback: (token: string) => {
-            tokenRef.current = token;
-            setCaptchaFailed(false);
-            setStatus((s) => (s === "captcha" ? "idle" : s));
-          },
-          "expired-callback": () => {
-            tokenRef.current = null;
-          },
-          "error-callback": () => {
-            tokenRef.current = null;
-          },
+    const load = () => {
+      // se mide recién aquí: en el drawer cerrado (display: none) el ancho al montar es 0
+      const small = el.clientWidth < TURNSTILE_MIN_W;
+      setCompact(small);
+      loadTurnstile()
+        .then((ts) => {
+          if (cancelled) return;
+          widgetRef.current = ts.render(el, {
+            sitekey: TURNSTILE_SITE_KEY,
+            language: "es",
+            theme: "light",
+            size: small ? "compact" : "flexible",
+            callback: (token: string) => {
+              tokenRef.current = token;
+              setCaptchaFailed(false);
+              setStatus((s) => (s === "captcha" ? "idle" : s));
+            },
+            "expired-callback": () => {
+              tokenRef.current = null;
+            },
+            "error-callback": () => {
+              tokenRef.current = null;
+            },
+          });
+        })
+        .catch(() => {
+          if (!cancelled) setCaptchaFailed(true);
         });
-      })
-      .catch(() => {
-        if (!cancelled) setCaptchaFailed(true);
-      });
+    };
+
+    // Se carga con el scroll quieto (QUIET_MS sin moverse): el script del reto (en el iframe de
+    // Cloudflare) tarda ~80 ms en evaluarse, y en Nosotros (escritorio) el formulario "se acerca"
+    // a mitad del recorrido animado de las tarjetas: cargarlo ahí cortaba la animación.
+    const QUIET_MS = 400;
+    let quiet = 0;
+    const arm = () => {
+      clearTimeout(quiet);
+      quiet = window.setTimeout(() => {
+        window.removeEventListener("scroll", arm);
+        if (!cancelled) load();
+      }, QUIET_MS);
+    };
+    window.addEventListener("scroll", arm, { passive: true });
+    arm();
 
     return () => {
       cancelled = true;
+      clearTimeout(quiet);
+      window.removeEventListener("scroll", arm);
       if (widgetRef.current) window.turnstile?.remove(widgetRef.current);
       widgetRef.current = null;
       tokenRef.current = null;

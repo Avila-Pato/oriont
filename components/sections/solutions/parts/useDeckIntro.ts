@@ -90,6 +90,19 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
       mm.add("(prefers-reduced-motion: no-preference) and (min-width: 1024px)", () => {
         // ya se armó una vez: el mazo queda completo y la sección ya no se fija
         if (played.current) return;
+        const sp = spacer.current;
+        const tr = track.current;
+        if (!sp || !tr) return;
+        // El espaciador viene oculto y solo se agrega si la sección todavía no llega arriba: así
+        // entra por debajo de lo que se ve y nada en pantalla se mueve. Si se llega ya pasada (enlace
+        // a otra sección, recarga a mitad de página) no hay recorrido de cartas: el mazo queda
+        // completo. Antes el espaciador venía puesto y se quitaba al acercarse desde abajo: sacar
+        // 200vh por encima de la pantalla daba CLS ~0.9 aunque el scroll lo compensara.
+        if (tr.getBoundingClientRect().top < -1) {
+          played.current = true;
+          return;
+        }
+        sp.style.display = "block";
         const cards = gsap.utils.toArray<HTMLElement>("[data-vc-card]");
         const tl = gsap.timeline({
           paused: true,
@@ -167,9 +180,8 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
             gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true });
           }
           setShown(null);
-          const sp = spacer.current;
           const sec = root.current;
-          if (!sp || !sec) return;
+          if (!sec) return;
           // al quitar el espaciador la sección cambia de lugar (deja de estar fija): se mide antes
           // y después y el scroll se corre esa diferencia, así en pantalla nada se mueve
           // (sirve igual al terminar el recorrido o a mitad, si se elige una carta del índice)
@@ -222,11 +234,16 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
 
         // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
         window.addEventListener(SKIP_INTRO_EVENT, skip);
+        // el espaciador cambió el alto de la página: los demás triggers (ya creados) deben medir de nuevo
+        ScrollTrigger.refresh();
         return () => {
           setWheelLimit(null);
           endRef.current = null;
           window.removeEventListener(SKIP_INTRO_EVENT, skip);
-          if (!played.current) setShown(null);
+          if (!played.current) {
+            setShown(null);
+            sp.style.display = "";
+          }
         };
       });
       return () => mm.revert();

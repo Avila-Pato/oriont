@@ -59,11 +59,11 @@ const HUBS = (
 // arcos circulares: los grandes se recortan arriba y abajo y llegan hasta el borde derecho
 const RINGS = [330, 500, 670, 840, 1010, 1180, 1350]; // anillos con logos
 /** velocidad del giro en el borde de cada anillo (unidades del dibujo por segundo) */
-const SPIN_SPEED = 20;
+const SPIN_SPEED = 10;
 const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1310, 1420]; // anillos solo de trazo (los de afuera, muy tenues)
 /** solo estos anillos giran (los demás quedan quietos). Cada uno va en su propia capa rotada por
  *  CSS (compositor, sin repintar): la capa es un cuadrado de 2r, por eso solo anillos medianos */
-const SPINNING = [330, 585, 840];
+const SPINNING = [250, 330, 500, 585, 670, 755, 840];
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pt = (r: number, deg: number) => {
@@ -199,12 +199,27 @@ export default function SponsorCircuit() {
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const q = gsap.utils.selector(root);
 
-        // el dibujo aparece con el scroll desde las 3 marcas hacia afuera: crece el radio del recorte
-        gsap.from(q("[data-reveal]"), {
-          attr: { r: HUB_ARC },
-          ease: "none",
-          scrollTrigger: { trigger: root.current, start: "top 85%", end: "center 50%", scrub: 0.8 },
-        });
+        // el dibujo aparece UNA vez, desde las 3 marcas hacia afuera: crece un círculo de recorte
+        // (clip-path CSS sobre el contenedor de todo el dibujo, no un <clipPath> dentro de cada
+        // SVG: así las capas que giran se rasterizan una vez y el recorte solo las enmascara).
+        // No va atado al scroll (antes con scrub avanzaba y retrocedía con la rueda, repintando el
+        // recorte en cada paso) y al terminar se quita el clip-path: no queda máscara que repintar.
+        const art = q<HTMLElement>("[data-art]")[0];
+        const circle = (r: number) => {
+          const k = art.clientWidth / W;
+          return `circle(${r * k}px at ${C.x * k}px ${C.y * k}px)`;
+        };
+        gsap.fromTo(
+          art,
+          { clipPath: () => circle(HUB_ARC) },
+          {
+            clipPath: () => circle(R_MAX),
+            duration: 1.8,
+            ease: "power2.inOut",
+            scrollTrigger: { trigger: root.current, start: "top 75%", once: true },
+            onComplete: () => gsap.set(art, { clearProps: "clipPath" }),
+          },
+        );
 
         // giro: solo algunos anillos (SPINNING), por CSS en el compositor (globals.css,
         // circuit-spin). Acá solo se pausa fuera de pantalla.
@@ -265,9 +280,10 @@ export default function SponsorCircuit() {
 
   return (
     <div ref={root} className="relative hidden aspect-[1500/600] w-full [--logo-h:26px] lg:block xl:[--logo-h:32px]">
-      {/* anillos que giran: cada uno en su capa (cuadrado de 2r centrado en C) rotada por CSS.
-          Usan el degradado y el recorte del SVG de abajo (ambos centrados en C: girar no los cambia) */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* todo el dibujo: lo recorta el círculo de la entrada (clip-path animado con el scroll) */}
+      <div data-art aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* anillos que giran: cada uno en su capa (cuadrado de 2r centrado en C) rotada por CSS.
+            Usan el degradado del SVG de abajo (centrado en C: girar no lo cambia) */}
         {DRAWING.rings
           .filter((ring) => SPINNING.includes(ring.r))
           .map((ring, i) => (
@@ -288,14 +304,13 @@ export default function SponsorCircuit() {
               }
             >
               <svg viewBox={`${C.x - ring.r} ${C.y - ring.r} ${ring.r * 2} ${ring.r * 2}`} className="size-full overflow-visible">
-                <g clipPath="url(#sponsor-circuit-reveal)" fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
+                <g fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
                   {ringPaths(ring)}
                 </g>
               </svg>
             </div>
           ))}
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="pointer-events-none absolute inset-0 size-full overflow-hidden" aria-hidden>
+      <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-hidden">
         <defs>
           {/* se desvanece hacia afuera */}
           <radialGradient
@@ -309,13 +324,9 @@ export default function SponsorCircuit() {
             <stop offset="0.55" stopColor="#21255c" />
             <stop offset="1" stopColor="#21255c" stopOpacity="0" />
           </radialGradient>
-          {/* recorte de la entrada: un círculo desde el centro (su radio lo anima el scroll) */}
-          <clipPath id="sponsor-circuit-reveal">
-            <circle data-reveal cx={C.x} cy={C.y} r={R_MAX} />
-          </clipPath>
         </defs>
         {/* anillos quietos (los que giran van en sus capas, arriba) */}
-        <g clipPath="url(#sponsor-circuit-reveal)" fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
+        <g fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
           {DRAWING.rings
             .filter((ring) => !SPINNING.includes(ring.r))
             .map((ring) => (
@@ -334,6 +345,7 @@ export default function SponsorCircuit() {
           ))}
         </g>
       </svg>
+      </div>
 
       <ul data-sponsor-grid aria-label="Marcas que confían en Oriont" className="absolute inset-0">
         {SPONSORS.map((s, i) => {

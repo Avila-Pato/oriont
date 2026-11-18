@@ -64,6 +64,19 @@ export default function AboutSection() {
   // el fondo del formulario rota fotos solo mientras la pantalla completa está abierta
   const [slidesOn, setSlidesOn] = useState(false);
 
+  // Fotos decodificadas por adelantado, en un momento libre, con la sección a una pantalla: si no,
+  // la primera vez se decodificaban al aparecer (las tarjetas al salir del centro y la foto grande
+  // al abrirse) y ese cuadro tardaba 60-80 ms. decode() espera a que la foto termine de bajar.
+  useEffect(() => {
+    if (!near) return;
+    const run = () =>
+      scope.current?.querySelectorAll("img").forEach((img) => {
+        img.decode().catch(() => {});
+      });
+    const id = window.requestIdleCallback?.(run, { timeout: 1500 }) ?? window.setTimeout(run, 200);
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
+  }, [near]);
+
   useGSAP(
     () => {
       if (!near) return;
