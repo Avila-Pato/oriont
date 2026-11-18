@@ -9,9 +9,10 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://oriont.cl"
 
 export const SITE = {
   name: "Oriont",
-  title: "Oriont | Bancaseguros y Telecomunicaciones",
+  // la palabra que más se busca va primero (pesa más al inicio del título)
+  title: "Bancaseguros y Telecomunicaciones en Chile | Oriont",
   description:
-    "Servicios, productos y tecnología para bancaseguros y telecomunicaciones en Chile. Conectamos al sponsor con el cliente final en toda la cadena de valor.",
+    "Servicios, productos y tecnología para bancaseguros y telecomunicaciones en Chile, Perú y Colombia. Conectamos al sponsor con el cliente final.",
   locale: "es_CL",
   email: ABOUT_CTA.contact.find((c) => c.icon === "mail")?.value ?? "contacto@oriont.cl",
   address: {

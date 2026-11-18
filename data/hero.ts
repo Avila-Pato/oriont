@@ -10,7 +10,8 @@ import hero9 from "@/public/hero/9.jpg";
 
 /** Textos del hero (provisorio). */
 export const HERO_COPY = {
-  eyebrow: "Somos Oriont",
+  // va dentro del h1 (SEO): dice de qué trata el sitio
+  eyebrow: "Bancaseguros y telecomunicaciones",
   title: "Conectamos al sponsor con el",
   highlight: "cliente final.",
   text: "Ofrecemos servicios, productos y tecnología asociados al segmento bancaseguros y telecomunicaciones, en toda la cadena de valor.",

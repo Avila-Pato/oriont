@@ -1,0 +1,79 @@
+# Publica el sitio en Azure App Service (Linux, Node 24) en cada push a master.
+#
+# Configurar una vez en GitHub → Settings → Secrets and variables → Actions:
+#   Secrets:
+#     AZURE_WEBAPP_PUBLISH_PROFILE   contenido del "perfil de publicación" del App Service
+#   Variables:
+#     AZURE_WEBAPP_NAME              nombre del App Service (sin .azurewebsites.net)
+#     NEXT_PUBLIC_TURNSTILE_SITE_KEY site key pública de Cloudflare Turnstile
+#     NEXT_PUBLIC_CONTACT_ENDPOINT   URL de MailSender /api/form-email
+#   (NEXT_PUBLIC_CONTACT_ADMIN_TO NO se define aquí: es solo para pruebas locales)
+#
+# En el App Service → Configuración:
+#   Startup Command: node server.js
+#   Variable de entorno: HOSTNAME = 0.0.0.0
+#
+# Mientras AZURE_WEBAPP_NAME no exista, solo se compila (sirve para ver que el build no se rompe).
+
+name: Publicar en Azure
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # los NEXT_PUBLIC_* quedan fijados en el código al compilar: tienen que estar aquí
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+      NEXT_PUBLIC_CONTACT_ENDPOINT: ${{ vars.NEXT_PUBLIC_CONTACT_ENDPOINT }}
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+      # el servidor standalone no incluye public/ ni .next/static: se copian a su lado
+      - name: Armar paquete
+        run: |
+          cp -r public .next/standalone/
+          cp -r .next/static .next/standalone/.next/
+          cd .next/standalone && zip -qr ../../site.zip .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site.zip
+          retention-days: 3
+
+  deploy:
+    needs: build
+    if: vars.AZURE_WEBAPP_NAME != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+
+      - id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: site.zip

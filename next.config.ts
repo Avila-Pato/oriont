@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Azure App Service: `next build` deja en .next/standalone un servidor mínimo (server.js) con
+  // solo las dependencias necesarias. Se publica esa carpeta (ver .github/workflows/deploy-azure.yml)
+  output: "standalone",
   // probar `next dev` desde el celular por la red local (si no, Next bloquea sus scripts de
   // desarrollo, la página no se hidrata y nada responde al toque)
   // y desde un túnel HTTPS (necesario para el sensor de movimiento en el celular):
