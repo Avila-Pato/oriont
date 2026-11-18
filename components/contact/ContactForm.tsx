@@ -428,21 +428,37 @@ export default function ContactForm({ className = "" }: { className?: string }) 
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 lg:short:mt-4">
-        {/* aria-live: el lector de pantalla anuncia el resultado al enviar */}
-        <p aria-live="polite" className={`text-[12px] 2xl:text-[13px] ${statusBad ? "text-[#c2410c]" : "text-[#21255c]/50"}`}>
-          {statusText}
-        </p>
+      {/* Texto de estado + botón sin saltos: antes era una fila flex-wrap y, según el largo del
+          texto ("También puedes escribirnos…", "Enviando…", "¡Gracias!…"), el botón bajaba o
+          subía de línea al enviar. Ahora la disposición depende del ancho del formulario (container
+          query), no del texto: angosto = texto arriba y botón abajo; ancho = texto a la izquierda.
+          El texto reserva 3 líneas y el botón mide siempre lo de "Enviar mensaje". */}
+      <div className="@container mt-6 lg:short:mt-4">
+        <div className="grid items-center gap-3 @sm:grid-cols-[minmax(0,1fr)_auto] @sm:gap-4">
+          {/* aria-live: el lector de pantalla anuncia el resultado al enviar */}
+          <p
+            aria-live="polite"
+            className={`flex min-h-[3lh] items-center text-[12px] leading-snug 2xl:text-[13px] ${statusBad ? "text-[#c2410c]" : "text-[#21255c]/50"}`}
+          >
+            {statusText}
+          </p>
 
-        <button
-          type="submit"
-          disabled={status === "sending"}
-          aria-busy={status === "sending"}
-          className="group inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#21255c] py-2 pl-5 pr-2 text-[14px] font-medium text-[#f5f0e6] transition hover:bg-[#2c3175] disabled:cursor-wait disabled:opacity-70 2xl:py-2.5 2xl:pl-6 2xl:text-[16px]"
-        >
-          {status === "sending" ? "Enviando…" : "Enviar mensaje"}
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] transition group-hover:translate-x-0.5">→</span>
-        </button>
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            aria-busy={status === "sending"}
+            className="group inline-flex cursor-pointer items-center gap-2 justify-self-end rounded-full bg-[#21255c] py-2 pl-5 pr-2 text-[14px] font-medium text-[#f5f0e6] transition hover:bg-[#2c3175] disabled:cursor-wait disabled:opacity-70 2xl:py-2.5 2xl:pl-6 2xl:text-[16px]"
+          >
+            {/* las dos etiquetas apiladas: el botón toma el ancho de la más larga y no cambia */}
+            <span className="grid">
+              <span aria-hidden className="invisible col-start-1 row-start-1">
+                Enviar mensaje
+              </span>
+              <span className="col-start-1 row-start-1 text-center">{status === "sending" ? "Enviando…" : "Enviar mensaje"}</span>
+            </span>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] transition group-hover:translate-x-0.5">→</span>
+          </button>
+        </div>
       </div>
     </form>
   );
