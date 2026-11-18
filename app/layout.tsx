@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 import SmoothScroll from "@/components/layout/SmoothScroll";
+import { SITE, SITE_URL } from "@/data/site";
 
 
 
@@ -22,9 +23,35 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Oriont | Bancaseguros y Telecomunicaciones",
-  description:
-    "Servicios, productos y tecnología para bancaseguros y telecomunicaciones. Conectamos al sponsor con el cliente final.",
+  // base de las URL absolutas (canónica, og:url, og:image)
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE.title,
+    template: `%s | ${SITE.name}`,
+  },
+  description: SITE.description,
+  applicationName: SITE.name,
+  alternates: { canonical: "/" },
+  // la imagen para compartir la pone app/opengraph-image.tsx
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: SITE.name,
+    title: SITE.title,
+    description: SITE.description,
+    locale: SITE.locale,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE.title,
+    description: SITE.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  formatDetection: { telephone: false, address: false, email: false },
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",

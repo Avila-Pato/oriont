@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import OriontLogo from "@/components/ui/OriontLogo";
+
+// sin canónica ni "index" (si no, heredaba los del inicio desde el layout y chocaban con el
+// noindex que Next agrega a los 404)
+export const metadata: Metadata = {
+  title: "Página no encontrada",
+  alternates: { canonical: null },
+  robots: { index: false, follow: true },
+};
 
 
 
