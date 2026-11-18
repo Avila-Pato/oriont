@@ -13,7 +13,7 @@ import {
   escapeHtml,
   toBase64,
 } from "./emails";
-import { loadTurnstile } from "./turnstile";
+import { loadTurnstile, preconnectTurnstile } from "./turnstile";
 
 /**
  * Formulario de contacto. Envía JSON a la Azure Function (CONTACT_ENDPOINT) con el token de
@@ -139,6 +139,12 @@ export default function ContactForm({ className = "" }: { className?: string }) 
   // Turnstile (script + widget) recién cuando el formulario se acerca a pantalla. En el drawer
   // cerrado (display: none) el elemento no intersecta, así que tampoco carga hasta abrirlo.
   const near = useNearViewport(boxRef, "200px");
+  // con más margen solo se abre la conexión con Cloudflare: cuando llega a los 200 px, el script
+  // se descarga sin esperar DNS + TLS
+  const approaching = useNearViewport(boxRef, "1200px");
+  useEffect(() => {
+    if (approaching && TURNSTILE_SITE_KEY) preconnectTurnstile();
+  }, [approaching]);
 
   useEffect(() => {
     const el = boxRef.current;

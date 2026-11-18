@@ -5,7 +5,9 @@ import gsap from "gsap";
 import { getLenis } from "@/components/layout/SmoothScroll";
 import { ABOUT_CTA } from "@/data/about";
 import ContactForm from "./ContactForm";
+import { TURNSTILE_SITE_KEY } from "./config";
 import { OPEN_CONTACT_EVENT } from "./contactEvents";
+import { preconnectTurnstile } from "./turnstile";
 
 /**
  * Panel lateral de contacto: "Contáctanos" lo abre encima de la página, sin recorrer todas las
@@ -92,6 +94,21 @@ export default function ContactDrawer() {
     window.addEventListener(OPEN_CONTACT_EVENT, open);
     return () => window.removeEventListener(OPEN_CONTACT_EVENT, open);
   }, [open]);
+
+  // Intención de abrir el panel (cursor encima, foco con teclado o dedo apoyado en cualquier enlace
+  // a #contacto): se abre ya la conexión con Cloudflare. Así, al hacer click, el script de
+  // Turnstile no espera DNS + TLS (~100-300 ms en móvil). Un solo listener por evento, se quita al primer uso.
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    const types = ["pointerover", "pointerdown", "focusin"] as const;
+    const onIntent = (e: Event) => {
+      if (!(e.target as Element | null)?.closest?.('a[href="#contacto"]')) return;
+      preconnectTurnstile();
+      types.forEach((t) => document.removeEventListener(t, onIntent));
+    };
+    types.forEach((t) => document.addEventListener(t, onIntent, { passive: true }));
+    return () => types.forEach((t) => document.removeEventListener(t, onIntent));
+  }, []);
 
   return (
     <dialog

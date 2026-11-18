@@ -16,8 +16,25 @@ declare global {
   }
 }
 
-const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const ORIGIN = "https://challenges.cloudflare.com";
+const SRC = `${ORIGIN}/turnstile/v0/api.js?render=explicit`;
 let loading: Promise<TurnstileApi> | null = null;
+let preconnected = false;
+
+/**
+ * Abre por adelantado la conexión (DNS + TCP + TLS) con Cloudflare cuando es probable que se use
+ * Turnstile (el formulario se acerca o el usuario apunta a "Contacto"). No va en el <head>: el
+ * formulario está al final o en el drawer, y una conexión ociosa se cierra a los ~10 s.
+ * Sin `crossorigin`: el script y el iframe del widget se piden en modo no-CORS.
+ */
+export function preconnectTurnstile() {
+  if (preconnected || loading || window.turnstile) return;
+  preconnected = true;
+  const l = document.createElement("link");
+  l.rel = "preconnect";
+  l.href = ORIGIN;
+  document.head.appendChild(l);
+}
 
 export function loadTurnstile(): Promise<TurnstileApi> {
   if (window.turnstile) return Promise.resolve(window.turnstile);

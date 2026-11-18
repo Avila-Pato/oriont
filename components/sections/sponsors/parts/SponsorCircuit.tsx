@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type CSSProperties } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -15,6 +15,7 @@ import { useNearViewport } from "@/hooks/useNearViewport";
 import logoConectados from "@/public/images/Logo_ConectadosTMK_mark.webp";
 import logoDental from "@/public/images/Logo_DentalAssist.webp";
 
+import { CELL_ENTRANCE } from "./cellEntrance";
 import SponsorLogo from "./SponsorLogo";
 
 gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, MotionPathPlugin, useGSAP);
@@ -324,8 +325,8 @@ export default function SponsorCircuit() {
               <span
                 data-logo-cell
                 data-sponsor={i}
-                className="group absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg bg-white px-2 py-1.5"
-                style={{ left: `${(n.x / W) * 100}%`, top: `${(n.y / H) * 100}%` }}
+                className={`group absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg bg-white px-2 py-1.5 ${CELL_ENTRANCE}`}
+                style={{ left: `${(n.x / W) * 100}%`, top: `${(n.y / H) * 100}%`, "--i": i } as CSSProperties}
               >
                 <SponsorLogo {...s} sizes="(min-width: 1280px) 180px, 140px" />
               </span>

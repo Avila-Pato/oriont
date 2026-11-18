@@ -1,5 +1,8 @@
+import type { CSSProperties } from "react";
+
 import { SPONSORS } from "@/data/sponsors";
 
+import { CELL_ENTRANCE } from "./cellEntrance";
 import SponsorLogo from "./SponsorLogo";
 
 /**
@@ -19,7 +22,13 @@ export default function SponsorGrid() {
     >
       {SPONSORS.map((s, i) => (
         // data-sponsor: índice en SPONSORS (SponsorLive muestra el nombre de la que se enciende)
-        <li key={s.name} data-logo-cell data-sponsor={i} className="group flex items-center justify-center">
+        <li
+          key={s.name}
+          data-logo-cell
+          data-sponsor={i}
+          className={`group flex items-center justify-center ${CELL_ENTRANCE}`}
+          style={{ "--i": i } as CSSProperties}
+        >
           <SponsorLogo {...s} sizes="(min-width: 768px) 120px, 90px" />
         </li>
       ))}
