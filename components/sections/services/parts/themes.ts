@@ -1,5 +1,5 @@
 import type { Brand } from "@/data/services";
-import type { CardColors } from "@/components/sections/value-chain/parts/themes";
+import type { CardColors } from "@/components/sections/solutions/parts/themes";
 
 /** Nombre del tema de una marca (definido en data/services.ts) */
 export type BrandTheme = Brand["theme"];

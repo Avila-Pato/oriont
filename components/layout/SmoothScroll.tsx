@@ -20,6 +20,13 @@ let current: Lenis | null = null;
 /** Para scroll programático que no pelee con Lenis (si está activo, hay que usar su scrollTo). */
 export const getLenis = () => current;
 
+/** Tope para la rueda hacia abajo: devuelve el scroll máximo al que puede apuntar Lenis, o null
+ *  (sin tope). Lo usa una sección fija que no quiere que un giro fuerte la pase de largo. */
+let wheelLimit: (() => number | null) | null = null;
+export const setWheelLimit = (fn: (() => number | null) | null) => {
+  wheelLimit = fn;
+};
+
 export default function SmoothScroll({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Sin Lenis (scroll nativo) en:
@@ -33,6 +40,21 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       duration: 2.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
+      // corre antes de que Lenis use el delta: aquí se recorta para respetar `wheelLimit`
+      virtualScroll: (data) => {
+        if (!wheelLimit || data.deltaY <= 0 || !data.event.type.includes("wheel")) return true;
+        const max = wheelLimit();
+        if (max === null) return true;
+        const room = max - lenis.targetScroll;
+        if (room >= data.deltaY) return true;
+        if (room <= 0) {
+          // en el tope: se anula el giro (y el scroll nativo, que si no se movería solo)
+          if (data.event.cancelable) data.event.preventDefault();
+          return false;
+        }
+        data.deltaY = room;
+        return true;
+      },
     });
     current = lenis;
 

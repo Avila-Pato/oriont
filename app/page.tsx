@@ -3,8 +3,8 @@ import ContactDrawer from "@/components/contact/ContactDrawer";
 import AboutSection from "@/components/sections/about/AboutSection";
 import HeroSection from "@/components/sections/hero/HeroSection";
 import ServicesSection from "@/components/sections/services/ServicesSection";
-import SponsorsSection from "@/components/sections/sponsors/SponsorsSection";
-import ValueChainSection from "@/components/sections/value-chain/ValueChainSection";
+import IndustriesSection from "@/components/sections/industries/IndustriesSection";
+import SolutionsSection from "@/components/sections/solutions/SolutionsSection";
 
 export default function Home() {
   return (
@@ -13,11 +13,11 @@ export default function Home() {
 
       <HeroSection />
 
-      <ValueChainSection />
+      <SolutionsSection />
 
       <ServicesSection />
 
-      <SponsorsSection />
+      <IndustriesSection />
 
       <AboutSection />
 

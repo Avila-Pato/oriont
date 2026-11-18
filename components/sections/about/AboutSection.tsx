@@ -33,7 +33,7 @@ const SLOT = (() => {
 const MID = (TEAM_CARDS.length - 1) / 2;
 
 /** Composición final (llamado + fila de tarjetas + flecha), centrada en el alto visible. */
-const HOLD = 0.3; // pausa inicial (en unidades del timeline) con el círculo completo a la vista
+const HOLD = 0.5; // pausa inicial (en unidades del timeline) con el círculo completo a la vista
 const CTA_TOP = 96; // px libres arriba (menú flotante)
 const BOTTOM_PAD = 14; // px libres abajo
 const GAP_CTA_ROW = 32; // px entre el llamado y la fila
@@ -82,9 +82,9 @@ export default function AboutSection() {
             y: (i) => -Math.sin((TEAM_CARDS[i].angle * Math.PI) / 180) * pull,
             scale: 0.6,
             autoAlpha: 0,
-            duration: 1.1,
+            duration: 1.5,
             ease: "expo.out",
-            stagger: 0.07,
+            stagger: 0.08,
             scrollTrigger: { trigger: scope.current, start: "top 65%", once: true },
           });
           gsap.from("[data-stage-text] > *", {

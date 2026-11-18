@@ -1,7 +1,7 @@
 /**
  * Contenido de la sección "Cadena de valor" (provisorio: reemplazar textos).
  * Solo datos: los íconos y logos se eligen por clave y viven en
- * components/sections/value-chain/parts/visuals.tsx.
+ * components/sections/solutions/parts/visuals.tsx.
  */
 
 export type StepIcon = "building" | "box" | "network" | "headset" | "product";

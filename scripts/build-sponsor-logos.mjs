@@ -1,7 +1,7 @@
 /**
  * Convierte los logos de sponsors (PNG negro sobre blanco, sin transparencia) en WebP transparentes
  * de un solo color, recortados al borde de la tinta y a una altura fija. Así todos pesan poco, se
- * ven parejos y el muro (components/sections/sponsors/parts/SponsorWall.tsx) los anima solo con opacity.
+ * ven parejos y el muro (components/sections/industries/parts/SponsorWall.tsx) los anima solo con opacity.
  *
  * Uso:
  *   node scripts/build-sponsor-logos.mjs "<carpeta con los PNG>"

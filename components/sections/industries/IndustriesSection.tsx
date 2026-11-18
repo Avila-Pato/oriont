@@ -4,7 +4,7 @@ import SponsorCircuit from "./parts/SponsorCircuit";
 import SponsorScrollColor from "./parts/SponsorScrollColor";
 import SponsorsReveal from "./parts/SponsorsReveal";
 
-export default function SponsorsSection() {
+export default function IndustriesSection() {
   return (
     <SponsorsReveal id="industrias" className="w-full bg-white lg:min-h-[100svh]">
       {/* título y descripción arriba, todas las marcas abajo */}

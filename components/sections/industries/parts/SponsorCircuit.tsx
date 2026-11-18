@@ -33,7 +33,7 @@ gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, MotionPathPlugin, useGSAP);
  * - Al pasar el cursor por un logo, una señal celeste viaja por su trazo hasta la marca del grupo
  *   más cercana (con el scroll los logos solo toman su color: SponsorScrollColor).
  * - La entrada de los logos la hace SponsorsReveal ([data-logo-cell]).
- * Va a todo el ancho de la pantalla (SponsorsSection lo pone fuera del contenedor) para que el abanico
+ * Va a todo el ancho de la pantalla (IndustriesSection lo pone fuera del contenedor) para que el abanico
  * vaya de borde a borde. Arcos circulares (sin deformar): los grandes se recortan arriba y abajo.
  * El dibujo es fijo (azar con semilla): el mismo en servidor y navegador. Contenedor con
  * proporción fija y solo transform/opacity/trazo animados: sin layout shift.

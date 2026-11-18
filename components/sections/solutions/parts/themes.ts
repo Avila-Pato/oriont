@@ -1,4 +1,4 @@
-import type { StepTheme } from "@/data/value-chain";
+import type { StepTheme } from "@/data/solutions";
 
 
 
