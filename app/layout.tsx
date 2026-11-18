@@ -3,6 +3,9 @@ import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 import SmoothScroll from "@/components/layout/SmoothScroll";
+
+
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,6 +25,10 @@ export const metadata: Metadata = {
   title: "Oriont | Bancaseguros y Telecomunicaciones",
   description:
     "Servicios, productos y tecnología para bancaseguros y telecomunicaciones. Conectamos al sponsor con el cliente final.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 
