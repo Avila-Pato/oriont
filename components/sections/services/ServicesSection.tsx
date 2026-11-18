@@ -44,7 +44,7 @@ export default function ServicesSection() {
       ref={root}
       id="servicios"
       // hoja que sube sobre la sección anterior: va encima, con esquinas redondeadas y sombra hacia arriba
-      className="relative bg-background py-24 text-[#21255c] md:py-32"
+      className="relative bg-background py-24 text-[#21255c] "
     >
       <div data-brands className="container-page">
         <div className="flex flex-col items-center text-center">

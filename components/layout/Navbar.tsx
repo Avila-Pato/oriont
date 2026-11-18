@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import OriontLogo from "@/components/ui/OriontLogo";
 import { NAV_CTA, NAV_LINKS } from "@/data/navigation";
 import { openContact } from "@/components/contact/contactEvents";
+import { useActiveSection } from "@/hooks/useActiveSection";
 
+/** ids de las secciones del menú (#soluciones → soluciones) */
+const SECTION_IDS = NAV_LINKS.map((l) => l.href.slice(1));
 
 type Box = { left: number; top: number; width: number; height: number; radius: number };
 
@@ -22,38 +25,13 @@ export default function Navbar() {
   const ctaRef = useRef<HTMLAnchorElement>(null);
   // sección en pantalla (href del enlace) y enlace bajo el mouse: el indicador va al que está
   // bajo el mouse y, si no hay ninguno, se queda en la sección actual
-  const [active, setActive] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
-  // sección actual: la que cruza una línea al 40% de la pantalla (arriba del todo, en el hero, ninguna)
-  useEffect(() => {
-    let raf = 0;
-    const check = () => {
-      raf = 0;
-      const line = window.innerHeight * 0.4;
-      let current: string | null = null;
-      for (const l of NAV_LINKS) {
-        const el = document.getElementById(l.href.slice(1));
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        if (r.top <= line && r.bottom > line) current = l.href;
-      }
-      setActive((a) => (a === current ? a : current));
-    };
-    // como mucho una lectura por cuadro
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(check);
-    };
-    check();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
+  // sección actual: la que cruza una línea al 40 % de la pantalla (arriba del todo, en el hero,
+  // ninguna). Con IntersectionObserver: no mide nada en cada scroll (ver useActiveSection)
+  const activeId = useActiveSection(SECTION_IDS);
+  const active = activeId ? `#${activeId}` : null;
 
   // al bajar se compacta y se mantiene así; al volver arriba del todo se abre
   useEffect(() => {

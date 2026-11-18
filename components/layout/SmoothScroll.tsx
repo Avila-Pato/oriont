@@ -37,11 +37,15 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
     current = lenis;
 
     // Un solo loop: el ticker de GSAP mueve Lenis y Lenis avisa a ScrollTrigger.
+    // Lenis va PRIMERO en el ticker (tercer argumento): mueve el scroll y ScrollTrigger lee
+    // posiciones con el DOM todavía limpio, y recién después GSAP escribe los estilos de las
+    // animaciones. Al final (como estaba) cada frame escribía estilos y después scrollTo los
+    // obligaba a recalcularse en el acto (recálculo de estilo y layout forzados en cada frame).
     lenis.on("scroll", ScrollTrigger.update);
     const tick = (time: number) => {
       lenis.raf(time * 1000);
     };
-    gsap.ticker.add(tick);
+    gsap.ticker.add(tick, false, true);
     gsap.ticker.lagSmoothing(0);
 
     return () => {

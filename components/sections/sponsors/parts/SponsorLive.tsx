@@ -92,7 +92,8 @@ export default function SponsorLive() {
       const mo = new MutationObserver((list) => {
         for (const m of list) {
           const cell = m.target as HTMLElement;
-          if (!cell.hasAttribute("data-on") || !cell.getClientRects().length) continue;
+          // (SponsorScrollColor solo enciende los de la versión visible: no hace falta medir)
+          if (!cell.hasAttribute("data-on")) continue;
           request(Number(cell.dataset.sponsor));
         }
       });
@@ -131,13 +132,13 @@ export default function SponsorLive() {
       <div className="mt-4 overflow-hidden">
         <p
           data-live-name
-          className="overflow-hidden text-ellipsis whitespace-nowrap font-display text-[44px] font-semibold leading-[1.1] tracking-tight text-[#21255c] xl:text-[56px]"
+          className="overflow-hidden text-ellipsis whitespace-nowrap font-display will-change-[transform,opacity] text-[44px] font-semibold leading-[1.1] tracking-tight text-[#21255c] xl:text-[56px]"
         >
           {SPONSORS[0].name}
         </p>
       </div>
       <div className="mt-3 flex items-center justify-between text-[14px] text-[#21255c]/55">
-        <span data-live-industry className="font-medium text-[#248caa]">
+        <span data-live-industry className="font-medium text-[#248caa] will-change-[opacity]">
           {SPONSORS[0].industry}
         </span>
         <span data-live-num>{`1 de ${SPONSORS.length}`}</span>
@@ -146,7 +147,7 @@ export default function SponsorLive() {
       <div className="mt-3 h-px w-full bg-[#21255c]/10">
         <div
           data-live-bar
-          className="h-px w-full origin-left bg-[#248caa]"
+          className="h-px w-full origin-left bg-[#248caa] will-change-transform"
           style={{ transform: `scaleX(${1 / SPONSORS.length})` }}
         />
       </div>

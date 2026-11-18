@@ -24,6 +24,9 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
   const [selected, setSelected] = useState<CountryCode | null>(null);
   // el canvas ya pintó su primer frame: el placeholder de CSS se desvanece
   const [ready, setReady] = useState(false);
+  // el placeholder ya terminó de desvanecerse: se quita (si no, su línea de escaneo seguía
+  // animándose para siempre aunque fuera invisible)
+  const [placeholderGone, setPlaceholderGone] = useState(false);
   const now = useClock();
   // botón donde se apretó el puntero (para no elegir otro país al soltar)
   const pressed = useRef<CountryCode | null>(null);
@@ -41,9 +44,13 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
     <div className={`touch-none select-none lg:touch-pan-y ${className || "relative"}`}>
       {/* Placeholder sin JS: viene en el HTML del servidor y ocupa el lugar exacto de la esfera
           (radio 0.42 del contenedor → inset 8%) mientras carga e hidrata el canvas. */}
+      {!placeholderGone && (
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute inset-[8%] transition-opacity duration-700 ${ready ? "opacity-0" : "opacity-100"}`}
+        onTransitionEnd={(e) => {
+          if (ready && e.target === e.currentTarget) setPlaceholderGone(true);
+        }}
       >
         <div className="absolute inset-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_32%_30%,#ffffff_0%,#f3f5f8_55%,#e3e8ef_88%,#d2d9e3_100%)] opacity-60 ring-1 ring-[#21255c]/15">
           {/* línea de escaneo: el contenedor completo se traslada, la línea va en su borde superior */}
@@ -55,6 +62,7 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
         {/* sombra en el piso */}
         <div className="absolute inset-x-[10%] -bottom-[8%] h-[6%] rounded-[50%] bg-[radial-gradient(closest-side,rgba(33,37,92,0.14),transparent)]" />
       </div>
+      )}
 
       <Globe
         className="absolute left-[-14%] top-[-14%] h-[128%] w-[128%]"

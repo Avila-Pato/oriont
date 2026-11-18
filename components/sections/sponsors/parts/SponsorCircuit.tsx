@@ -56,7 +56,9 @@ const HUBS = (
 });
 // arcos circulares: los grandes se recortan arriba y abajo y llegan hasta el borde derecho
 const RINGS = [330, 500, 670, 840, 1010, 1180, 1350]; // anillos con logos
-const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1420]; // anillos solo de trazo (los de afuera, muy tenues)
+/** velocidad del giro en el borde de cada anillo (unidades del dibujo por segundo) */
+const SPIN_SPEED = 20;
+const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1310, 1420]; // anillos solo de trazo (los de afuera, muy tenues)
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pt = (r: number, deg: number) => {
@@ -194,22 +196,41 @@ export default function SponsorCircuit() {
         });
 
         // giro continuo: misma velocidad en el borde de todos los anillos (los grandes giran más
-        // lento), sentidos alternos. Solo corre con la sección en pantalla
-        const spins = q<SVGGElement>("[data-ring]").map((g, i) =>
-          gsap.to(g, {
-            rotation: i % 2 ? -360 : 360,
-            svgOrigin: `${C.x} ${C.y}`,
-            duration: (2 * Math.PI * DRAWING.rings[i].r) / 20,
-            ease: "none",
-            repeat: -1,
-            paused: true,
-          }),
-        );
+        // lento), sentidos alternos. Solo corre con la sección en pantalla.
+        // Rendimiento: cada paso de giro obliga a repintar todo el SVG, así que se actualiza a
+        // 30 fps (a ~20 px/s cada paso mueve menos de 1 px: se ve igual) y escribiendo el transform
+        // directo, en vez de 17 tweens de GSAP a 60 fps. Va al final del ticker de GSAP (no en un
+        // requestAnimationFrame propio): así escribe después de que Lenis y ScrollTrigger leen el
+        // scroll, y no los obliga a recalcular estilos.
+        const rings = q<SVGGElement>("[data-ring]");
+        const degPerMs = DRAWING.rings.map((ring, i) => ((i % 2 ? -1 : 1) * 360 * SPIN_SPEED) / (2 * Math.PI * ring.r) / 1000);
+        let running = false;
+        let elapsed = 0; // ms de giro acumulados (solo cuenta mientras corre)
+        let prev = 0;
+        let drawn = 0;
+        const tick = () => {
+          const now = performance.now();
+          elapsed += Math.min(100, now - prev); // tope: al volver de una pausa no da un salto
+          prev = now;
+          if (now - drawn < 1000 / 30 - 2) return;
+          drawn = now;
+          rings.forEach((g, i) => g.setAttribute("transform", `rotate(${(elapsed * degPerMs[i]) % 360} ${C.x} ${C.y})`));
+        };
+        const play = () => {
+          if (running) return;
+          running = true;
+          prev = performance.now();
+          gsap.ticker.add(tick);
+        };
+        const pause = () => {
+          running = false;
+          gsap.ticker.remove(tick);
+        };
         ScrollTrigger.create({
           trigger: root.current,
           start: "top bottom",
           end: "bottom top",
-          onToggle: (self) => spins.forEach((t) => (self.isActive ? t.play() : t.pause())),
+          onToggle: (self) => (self.isActive ? play() : pause()),
         });
 
         // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta la marca
@@ -238,7 +259,10 @@ export default function SponsorCircuit() {
           c.addEventListener("pointerenter", fn);
           return fn;
         });
-        return () => cells.forEach((c, i) => c.removeEventListener("pointerenter", enter[i]));
+        return () => {
+          pause();
+          cells.forEach((c, i) => c.removeEventListener("pointerenter", enter[i]));
+        };
       });
       return () => mm.revert();
     },

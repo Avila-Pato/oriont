@@ -266,9 +266,11 @@ export default function ValueChainSection() {
                     }`}
                   >
                     <span className={`font-mono text-[12px] transition-opacity ${on ? "text-[#248caa]" : "text-[#21255c]/40"}`}>{pad(i)}</span>
+                    {/* la rayita crece con scale (no con width: animar el ancho recalculaba el layout
+                        de la fila en cada frame y corría el texto de al lado) */}
                     <span
-                      className={`h-px flex-none bg-current transition-all duration-200 motion-reduce:transition-none ${
-                        on ? "w-10 text-[#248caa]" : "w-6 text-[#21255c]/25 group-hover:w-8"
+                      className={`h-px w-10 flex-none origin-left bg-current transition-[scale,color] duration-200 motion-reduce:transition-none ${
+                        on ? "scale-x-100 text-[#248caa]" : "scale-x-60 text-[#21255c]/25 group-hover:scale-x-80"
                       }`}
                     />
                     <span

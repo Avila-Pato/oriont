@@ -25,7 +25,11 @@ export default function SponsorScrollColor() {
     // hay dos versiones (grilla en celular, red en escritorio): se encienden solo las visibles
     const grids = Array.from(document.querySelectorAll<HTMLElement>("[data-sponsor-grid]"));
     if (!grids.length || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const visible = () => grids.find((g) => g.getClientRects().length > 0) ?? grids[0];
+    // cuál se ve sale del ancho de pantalla (lg = 1024px, como en las clases), no de medir el
+    // DOM: medir justo después de encender un logo forzaba a recalcular estilos en cada encendido
+    const desktop = matchMedia("(min-width: 1024px)");
+    const visible = () =>
+      grids.find((g) => g.classList.contains("lg:hidden") !== desktop.matches) ?? grids[0];
     let grid = visible();
     const cellsOf = (g: HTMLElement) => Array.from(g.querySelectorAll<HTMLElement>("[data-logo-cell]"));
     let cells = cellsOf(grid);
@@ -44,16 +48,11 @@ export default function SponsorScrollColor() {
         cells = cellsOf(g);
         prev = -1;
       }
-      // al azar, sin repetir el anterior ni uno que ya está encendido; en la cinta del celular,
-      // solo los que están dentro de la pantalla (el resto va pasando fuera de vista)
-      const vw = window.innerWidth;
-      const inView = (c: HTMLElement) => {
-        const r = c.getBoundingClientRect();
-        return r.left >= 0 && r.right <= vw;
-      };
+      // al azar, sin repetir el anterior ni uno que ya está encendido (todos los logos están a la
+      // vista: ya no hay cintas que se salgan de pantalla, así que no hace falta medirlos)
       const free = cells
         .map((_, i) => i)
-        .filter((i) => i !== prev && !cells[i].hasAttribute("data-on") && inView(cells[i]));
+        .filter((i) => i !== prev && !cells[i].hasAttribute("data-on"));
       if (!free.length) return;
       const i = free[Math.floor(Math.random() * free.length)];
       prev = i;
@@ -66,12 +65,23 @@ export default function SponsorScrollColor() {
       );
     };
 
-    // con scroll
+    // con scroll. El encendido (escribir data-on) se deja para el final del ticker de GSAP: si se
+    // hace dentro de ScrollTrigger.update, el siguiente trigger lee el scroll con el estilo ya
+    // cambiado y el navegador tiene que recalcular estilos en el acto (en cada cuadro de scroll)
+    let pending = false;
+    const flush = () => {
+      if (!pending) return;
+      pending = false;
+      light(EVERY);
+    };
+    gsap.ticker.add(flush);
     const st = ScrollTrigger.create({
       trigger: grids[0].parentElement ?? grid,
       start: "top bottom",
       end: "bottom top",
-      onUpdate: () => light(EVERY),
+      onUpdate: () => {
+        pending = true;
+      },
     });
 
     // con la pantalla quieta (si hubo scroll hace poco, light() lo deja pasar: no se duplica)
@@ -88,6 +98,7 @@ export default function SponsorScrollColor() {
     grids.forEach((g) => io.observe(g));
 
     return () => {
+      gsap.ticker.remove(flush);
       st.kill();
       io.disconnect();
       clearTimeout(idle);

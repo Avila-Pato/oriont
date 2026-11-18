@@ -918,8 +918,11 @@ export default function Globe({ className = "", active = null, focus = null, onH
       cancelAnimationFrame(raf);
       raf = 0;
     };
-    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { rootMargin: "100px" });
-    io.observe(canvas);
+    // Se observa el contenedor del globo (la caja visible), no el canvas: el canvas es 28 % más
+    // grande y se sale por abajo, así que con Cadena de valor ya en pantalla (y el globo tapado)
+    // seguía "visible" y dibujaba a 30 fps sin que se viera.
+    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()));
+    io.observe(hit);
 
     return () => {
       stop();
