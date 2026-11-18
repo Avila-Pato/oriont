@@ -70,6 +70,24 @@
   }
 }
 
+/* abanico de marcas (SponsorCircuit): giro de los anillos que giran. Va en el compositor
+   (solo transform). Pausado hasta que la sección está en pantalla (data-spin="on"). */
+@keyframes circuit-spin {
+  to { transform: rotate(360deg); }
+}
+[data-ring-spin] {
+  animation: circuit-spin var(--spin-dur) linear infinite paused;
+  will-change: transform;
+}
+[data-spin="on"] [data-ring-spin] {
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ring-spin] {
+    animation: none !important;
+  }
+}
+
 html,
 body {
   overflow-x: clip;

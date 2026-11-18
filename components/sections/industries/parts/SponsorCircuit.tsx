@@ -26,10 +26,11 @@ gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, MotionPathPlugin, useGSAP);
  * medio círculo hacia la derecha, cortados en tramos, con conectores radiales y puntos
  * en las puntas; hacia afuera se desvanecen. Los logos van sobre los arcos.
  * - El dibujo aparece con el scroll desde el centro hacia afuera (un círculo de recorte que crece,
- *   scrub) y los anillos giran lento, cada uno en un sentido (anillos completos: al girar no
- *   aparecen huecos). El giro se pausa fuera de pantalla.
+ *   scrub) y algunos anillos (SPINNING) giran lento, en sentidos alternos (anillos completos: al
+ *   girar no aparecen huecos). El giro se pausa fuera de pantalla.
  * Rendimiento: cada anillo son 3 trazos (tramos, conectores, puntos) en vez de ~40 elementos, y la
- * entrada anima un solo valor (el radio del recorte) en vez de cientos de trazos por frame.
+ * entrada anima un solo valor (el radio del recorte) en vez de cientos de trazos por frame. Los
+ * anillos que giran van en capas propias rotadas por CSS: el giro no repinta nada en el hilo principal.
  * - Al pasar el cursor por un logo, una señal celeste viaja en línea recta hasta el primer arco del
  *   abanico, a un punto distinto cada vez (con el scroll los logos solo toman su color: SponsorScrollColor).
  * - La entrada de los logos la hace SponsorsReveal ([data-logo-cell]).
@@ -60,6 +61,9 @@ const RINGS = [330, 500, 670, 840, 1010, 1180, 1350]; // anillos con logos
 /** velocidad del giro en el borde de cada anillo (unidades del dibujo por segundo) */
 const SPIN_SPEED = 20;
 const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1310, 1420]; // anillos solo de trazo (los de afuera, muy tenues)
+/** solo estos anillos giran (los demás quedan quietos). Cada uno va en su propia capa rotada por
+ *  CSS (compositor, sin repintar): la capa es un cuadrado de 2r, por eso solo anillos medianos */
+const SPINNING = [330, 585, 840];
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pt = (r: number, deg: number) => {
@@ -202,42 +206,15 @@ export default function SponsorCircuit() {
           scrollTrigger: { trigger: root.current, start: "top 85%", end: "center 50%", scrub: 0.8 },
         });
 
-        // giro continuo: misma velocidad en el borde de todos los anillos (los grandes giran más
-        // lento), sentidos alternos. Solo corre con la sección en pantalla.
-        // Rendimiento: cada paso de giro obliga a repintar todo el SVG, así que se actualiza a
-        // 30 fps (a ~20 px/s cada paso mueve menos de 1 px: se ve igual) y escribiendo el transform
-        // directo, en vez de 17 tweens de GSAP a 60 fps. Va al final del ticker de GSAP (no en un
-        // requestAnimationFrame propio): así escribe después de que Lenis y ScrollTrigger leen el
-        // scroll, y no los obliga a recalcular estilos.
-        const rings = q<SVGGElement>("[data-ring]");
-        const degPerMs = DRAWING.rings.map((ring, i) => ((i % 2 ? -1 : 1) * 360 * SPIN_SPEED) / (2 * Math.PI * ring.r) / 1000);
-        let running = false;
-        let elapsed = 0; // ms de giro acumulados (solo cuenta mientras corre)
-        let prev = 0;
-        let drawn = 0;
-        const tick = () => {
-          const now = performance.now();
-          elapsed += Math.min(100, now - prev); // tope: al volver de una pausa no da un salto
-          prev = now;
-          if (now - drawn < 1000 / 30 - 2) return;
-          drawn = now;
-          rings.forEach((g, i) => g.setAttribute("transform", `rotate(${(elapsed * degPerMs[i]) % 360} ${C.x} ${C.y})`));
-        };
-        const play = () => {
-          if (running) return;
-          running = true;
-          prev = performance.now();
-          gsap.ticker.add(tick);
-        };
-        const pause = () => {
-          running = false;
-          gsap.ticker.remove(tick);
-        };
+        // giro: solo algunos anillos (SPINNING), por CSS en el compositor (globals.css,
+        // circuit-spin). Acá solo se pausa fuera de pantalla.
+        const el = root.current!;
+        const pause = () => delete el.dataset.spin;
         ScrollTrigger.create({
-          trigger: root.current,
+          trigger: el,
           start: "top bottom",
           end: "bottom top",
-          onToggle: (self) => (self.isActive ? play() : pause()),
+          onToggle: (self) => (self.isActive ? (el.dataset.spin = "on") : pause()),
         });
 
         // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta el primer
@@ -278,8 +255,46 @@ export default function SponsorCircuit() {
     { scope: root, dependencies: [near], revertOnUpdate: true },
   );
 
+  const ringPaths = (ring: (typeof DRAWING.rings)[number]) => (
+    <>
+      <path d={ring.segs} strokeWidth={ring.ghost ? 0.8 : 1.2} opacity={ring.ghost ? 0.12 : 0.26} vectorEffect="non-scaling-stroke" />
+      <path d={ring.ticks} strokeWidth={1.4} opacity={0.28} vectorEffect="non-scaling-stroke" />
+      <path d={ring.dots} fill="#21255c" stroke="none" opacity={0.32} />
+    </>
+  );
+
   return (
     <div ref={root} className="relative hidden aspect-[1500/600] w-full [--logo-h:26px] lg:block xl:[--logo-h:32px]">
+      {/* anillos que giran: cada uno en su capa (cuadrado de 2r centrado en C) rotada por CSS.
+          Usan el degradado y el recorte del SVG de abajo (ambos centrados en C: girar no los cambia) */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        {DRAWING.rings
+          .filter((ring) => SPINNING.includes(ring.r))
+          .map((ring, i) => (
+            <div
+              key={ring.r}
+              data-ring-spin
+              className="absolute"
+              style={
+                {
+                  left: pctX(C.x - ring.r),
+                  top: pctY(C.y - ring.r),
+                  width: pctX(ring.r * 2),
+                  height: pctY(ring.r * 2),
+                  // misma velocidad en el borde (los grandes giran más lento), sentidos alternos
+                  "--spin-dur": `${Math.round((2 * Math.PI * ring.r) / SPIN_SPEED)}s`,
+                  animationDirection: i % 2 ? "reverse" : "normal",
+                } as CSSProperties
+              }
+            >
+              <svg viewBox={`${C.x - ring.r} ${C.y - ring.r} ${ring.r * 2} ${ring.r * 2}`} className="size-full overflow-visible">
+                <g clipPath="url(#sponsor-circuit-reveal)" fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
+                  {ringPaths(ring)}
+                </g>
+              </svg>
+            </div>
+          ))}
+      </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="pointer-events-none absolute inset-0 size-full overflow-hidden" aria-hidden>
         <defs>
           {/* se desvanece hacia afuera */}
@@ -299,16 +314,13 @@ export default function SponsorCircuit() {
             <circle data-reveal cx={C.x} cy={C.y} r={R_MAX} />
           </clipPath>
         </defs>
-        {/* un grupo por anillo (gira entero); el degradado es radial desde el centro de giro, así
-            que girar no cambia dónde se desvanece */}
+        {/* anillos quietos (los que giran van en sus capas, arriba) */}
         <g clipPath="url(#sponsor-circuit-reveal)" fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
-          {DRAWING.rings.map((ring) => (
-            <g key={ring.r} data-ring>
-              <path d={ring.segs} strokeWidth={ring.ghost ? 0.8 : 1.2} opacity={ring.ghost ? 0.12 : 0.26} vectorEffect="non-scaling-stroke" />
-              <path d={ring.ticks} strokeWidth={1.4} opacity={0.28} vectorEffect="non-scaling-stroke" />
-              <path d={ring.dots} fill="#21255c" stroke="none" opacity={0.32} />
-            </g>
-          ))}
+          {DRAWING.rings
+            .filter((ring) => !SPINNING.includes(ring.r))
+            .map((ring) => (
+              <g key={ring.r}>{ringPaths(ring)}</g>
+            ))}
         </g>
         {/* señales: ocultas hasta que su logo se enciende */}
         <g fill="none" stroke="#248caa" strokeWidth={1.6} strokeLinecap="round">
