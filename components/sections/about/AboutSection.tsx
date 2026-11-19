@@ -265,6 +265,9 @@ export default function AboutSection() {
             },
             HOLD,
           )
+          // en la fila la del centro no se agranda con hover: de ella nace la imagen a pantalla completa,
+          // que parte del tamaño normal de su foto (agrandada se veían las dos superpuestas)
+          .set(outers[EXPAND], { pointerEvents: "none" }, HOLD)
           .to("[data-about-circle]", { scale: 1.12, opacity: 0.7, duration: 1, ease: "none" }, HOLD)
           .fromTo(
             "[data-stage-cta] > * > *",
@@ -329,7 +332,8 @@ export default function AboutSection() {
               key={i}
               data-orbit-card
               // z-30! le gana al zIndex en línea que pone GSAP cuando las tarjetas forman la fila
-              className="absolute z-10 w-[clamp(130px,min(13vw,23svh),310px)] -translate-x-1/2 -translate-y-1/2 hover:z-30!"
+              // group/card: este contenedor (tamaño normal) es el que recibe el hover, no la tarjeta agrandada
+              className="group/card absolute z-10 w-[clamp(130px,min(13vw,23svh),310px)] -translate-x-1/2 -translate-y-1/2 hover:z-30!"
               style={{
                 // redondeado: servidor y navegador dan decimales distintos y React avisa de un desajuste
                 left: `${(50 + Math.cos(rad) * RADIUS_X).toFixed(3)}%`,
@@ -366,7 +370,8 @@ export default function AboutSection() {
         </div>
 
         {/* flecha para seguir bajando: aparece con el llamado y se va al abrirse la imagen */}
-        <div ref={arrowBox} className="absolute inset-x-0 top-0 z-20 flex justify-center">
+        {/* la franja es de ancho completo: sin pointer-events-none tapaba el hover/clic de las tarjetas */}
+        <div ref={arrowBox} className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center">
           <button
             type="button"
             data-stage-arrow
@@ -374,7 +379,7 @@ export default function AboutSection() {
             onClick={() => window.scrollBy({ top: window.innerHeight * 1.2, behavior: "smooth" })}
             // se nota por el color (celeste de la marca) y no por el tamaño: mismo diseño del
             // original, con círculo blanco y sombra leve; al pasar el mouse, azul oscuro
-            className="group invisible flex cursor-pointer flex-col items-center gap-5 text-[#248caa] opacity-0 transition-colors hover:text-[#21255c]"
+            className="group pointer-events-auto invisible flex cursor-pointer flex-col items-center gap-5 text-[#248caa] opacity-0 transition-colors hover:text-[#21255c]"
           >
             <span className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] 2xl:text-[12px]">Scroll</span>
 
@@ -612,7 +617,7 @@ function ContactIntro() {
                   {c.value}
                 </a>
               ) : (
-                <span className="text-[15px] font-medium 2xl:text-[17px]">{c.value}</span>
+                <span className="text-[15px] font-medium 2xl:text-[17px] ">{c.value}</span>
               )}
             </span>
           </li>

@@ -23,7 +23,7 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  // base de las URL absolutas (canónica, og:url, og:image)
+  // base de las URL absolutas (canónica, og:url, og:image) metatags
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE.title,

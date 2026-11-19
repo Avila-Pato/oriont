@@ -21,4 +21,5 @@ export const SITE = {
     addressRegion: "Región Metropolitana",
     addressCountry: "CL",
   },
+
 };

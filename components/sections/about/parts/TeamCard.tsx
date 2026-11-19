@@ -28,11 +28,13 @@ export default function TeamCard({
   return (
     <figure
       style={style}
-      className={`group rotate-(--r) rounded-xl border-2 border-[#21255c] bg-white p-2.5 shadow-[6px_6px_0_#21255c] transition duration-300 ease-out hover:rotate-0 hover:scale-105 hover:shadow-[10px_10px_0_#248caa] 2xl:rounded-2xl 2xl:p-3.5 2xl:shadow-[8px_8px_0_#21255c] max-sm:rounded-lg max-sm:border max-sm:p-1 max-sm:shadow-[3px_3px_0_#21255c] ${
+      className={`group rotate-(--r) rounded-xl border-2 border-[#21255c] bg-white p-2.5 shadow-[6px_6px_0_#21255c] transition duration-300 ease-out 2xl:rounded-2xl 2xl:p-3.5 2xl:shadow-[8px_8px_0_#21255c] max-sm:rounded-lg max-sm:border max-sm:p-1 max-sm:shadow-[3px_3px_0_#21255c] ${
         zoomOrigin
-          ? // al entrar crece suave; al salir vuelve con rebote (la transición que manda es la del estado destino)
-            "lg:duration-900 lg:ease-spring lg:hover:duration-500 lg:hover:ease-[cubic-bezier(0.22,1,0.36,1)] motion-safe:lg:hover:translate-x-(--zx) motion-safe:lg:hover:translate-y-(--zy) motion-safe:lg:hover:scale-[1.8]"
-          : ""
+          ? // el hover lo detecta el contenedor (group/card, de tamaño normal) y no la tarjeta agrandada:
+            // así, agrandada, no tapa a las vecinas y se puede pasar a la siguiente.
+            // al entrar crece suave; al salir vuelve con rebote (la transición que manda es la del estado destino)
+            "pointer-events-none group-hover/card:rotate-0 group-hover/card:scale-105 group-hover/card:shadow-[10px_10px_0_#248caa] lg:duration-900 lg:ease-spring lg:group-hover/card:duration-500 lg:group-hover/card:ease-[cubic-bezier(0.22,1,0.36,1)] motion-safe:lg:group-hover/card:translate-x-(--zx) motion-safe:lg:group-hover/card:translate-y-(--zy) motion-safe:lg:group-hover/card:scale-[1.8]"
+          : "hover:rotate-0 hover:scale-105 hover:shadow-[10px_10px_0_#248caa]"
       } ${className}`}
     >
       <div data-card-photo className="relative aspect-4/3 w-full overflow-hidden rounded-md bg-[#21255c]/10">
@@ -43,7 +45,7 @@ export default function TeamCard({
           placeholder="blur"
           // en escritorio la tarjeta se ve hasta 1,8× al hacer hover: pedimos la foto a ese tamaño
           sizes="(min-width: 1024px) 24vw, 45vw"
-          className="object-cover transition duration-500 group-hover:scale-105"
+          className="object-cover transition duration-500 group-hover:scale-105 group-hover/card:scale-105"
           style={card.position ? { objectPosition: card.position } : undefined}
         />
       </div>
