@@ -423,7 +423,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
               <div className="relative">
                 {f.type === "textarea" ? (
                   // texto multilínea (mensaje): 4 filas de alto, sin tirador para no mover el layout
-                  <textarea {...common} rows={4} className={`${field(!!err)} resize-none lg:short:h-22`} />
+                  <textarea {...common} rows={4} className={`${field(!!err)} resize-none lg:short:h-16`} />
                 ) : (
                   // una sola línea: `type` valida el formato y `inputMode` elige el teclado en móvil
                   <input {...common} type={f.type} inputMode={f.inputMode} className={field(!!err)} />
@@ -504,6 +504,17 @@ export default function ContactForm({ className = "" }: { className?: string }) 
           </button>
         </div>
       </div>
+
+      {/* aviso de consentimiento (Ley 21.719): siempre visible, así no aparece y mueve nada.
+          Pestaña nueva: el formulario puede estar en el panel y no se pierde lo escrito.
+          En pantallas bajas el mensaje se achica (h-16) para que la tarjeta siga cabiendo en 1280×600 */}
+      <p className="mt-3 lg:short:mt-1.5 text-[11px] leading-snug text-[#21255c]/50 2xl:text-[12px]">
+        Al enviar aceptas que usemos tus datos para responderte, según nuestra{" "}
+        <a href="/privacidad" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-[#248caa]">
+          política de privacidad
+        </a>
+        .
+      </p>
     </form>
   );
 }

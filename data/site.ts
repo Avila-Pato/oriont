@@ -9,6 +9,8 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://oriont.cl"
 
 export const SITE = {
   name: "Oriont",
+  // razón social: la usan los datos estructurados y la política de privacidad
+  legalName: "Oriont Consulting SpA",
   // la palabra que más se busca va primero (pesa más al inicio del título)
   title: "Bancaseguros y Telecomunicaciones en Chile | Oriont",
   description:

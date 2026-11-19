@@ -32,6 +32,7 @@ export const jsonLd = {
       "@type": "Organization",
       "@id": ORG_ID,
       name: SITE.name,
+      legalName: SITE.legalName,
       url: SITE_URL,
       logo: `${SITE_URL}/icon.png`,
       description: SITE.description,

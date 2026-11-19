@@ -129,7 +129,7 @@ export default function Navbar() {
           aria-label="Oriont, inicio"
           // cápsula blanca casi opaca con borde y sombra fijos: el logo se despega del fondo claro
           // del hero desde el primer frame (antes era blanco al 75 % sin borde y se perdía)
-          className={`pointer-events-auto relative justify-self-start rounded-full bg-white/95 px-4 py-2 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-opacity duration-500 ${
+          className={`pointer-events-auto relative justify-self-start flex h-14 items-center rounded-full bg-white/95 px-4 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-opacity duration-500 ${
             tight ? "lg:pointer-events-none lg:opacity-0" : ""
           }`}
         >
@@ -140,7 +140,7 @@ export default function Navbar() {
         <ul
           ref={listRef}
           onMouseLeave={() => setHovered(null)}
-          className="pointer-events-auto relative hidden items-center rounded-full p-1.5 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex"
+          className="pointer-events-auto relative hidden h-14 items-center rounded-full p-1.5 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:flex"
           style={{ transform: `translateX(${tight ? shift.list : 0}px)` }}
         >
           {/* indicador: ocupa toda la lista y se recorta con clip-path (sin mover el layout) */}
@@ -167,7 +167,7 @@ export default function Navbar() {
                 onFocus={() => setHovered(l.href)}
                 onBlur={() => setHovered(null)}
                 // texto oscuro sobre el indicador: el enlace bajo el mouse, o la sección actual
-                className={`peer relative z-10 block rounded-full px-5 py-2 text-[13px] font-medium transition-colors duration-300 focus-visible:outline-none ${
+                className={`peer relative z-10 flex h-11 items-center rounded-full px-5 text-[13px] font-medium transition-colors duration-300 focus-visible:outline-none ${
                   target === l.href ? "text-[#21255c]" : "text-white/75"
                 }`}
               >
@@ -198,12 +198,12 @@ export default function Navbar() {
             }}
             // misma cápsula blanca que el logo, arriba y al bajar (antes crema que cambiaba al
             // hacer scroll). El borde del hover va en ::after y solo anima opacity
-            className="group relative hidden items-center gap-3 rounded-full bg-white/95 py-1.5 pl-5 pr-1.5 text-[13px] font-medium text-[#21255c] shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-[#21255c] after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
+            className="group relative hidden h-12 items-center gap-3 rounded-full bg-white/95 pl-6 pr-2 text-[13px] font-medium text-[#21255c] shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-[#21255c] after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
             style={{ transform: `translateX(${tight ? shift.cta : 0}px)` }}
           >
             {NAV_CTA.label}
             {/* ícono de correo (antes una flecha); al pasar el mouse crece un poco */}
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] text-white transition-transform duration-300 group-hover:scale-110">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#248caa] text-white transition-transform duration-300 group-hover:scale-110">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -225,7 +225,7 @@ export default function Navbar() {
             aria-expanded={open}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
             // misma cápsula blanca que el logo al bajar (antes un círculo azul marino macizo)
-            className="relative grid h-11 w-11 place-items-center rounded-full border border-[#21255c]/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl lg:hidden"
+            className="relative grid h-14 w-14 place-items-center rounded-full border border-[#21255c]/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl lg:hidden"
           >
             <span className="relative block h-3 w-4">
               <span
