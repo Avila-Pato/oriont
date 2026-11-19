@@ -29,18 +29,7 @@ import suraColor from "@/public/sponsors/sura-color.webp";
 import tuya from "@/public/sponsors/tuya.webp";
 import zenit from "@/public/sponsors/zenit.webp";
 
-/**
- * Marcas del muro "Confían en nosotros". Los WebP salen de scripts/build-sponsor-logos.mjs
- * (transparentes, marino, recortados); para agregar una marca: sumar el PNG a la carpeta,
- * correr el script e importar el archivo aquí. El orden de la lista es el orden del muro.
- * Cómo se enciende el logo (con el scroll o el cursor):
- * - `colorLogo`: versión a color del logo (logos de varios colores; sale de
- *   scripts/build-sponsor-color-logos.mjs). Si existe, se usa esta.
- * - `color`: si no, un color de marca (fondo CSS recortado por el logo: color o degradado).
- * Colores aproximados: verificar con los oficiales.
- * `industry`: se muestra bajo el nombre de la marca encendida (junto al título).
- * PROVISORIA: la asignó el equipo de desarrollo; confirmar con el área comercial.
- */
+
 export type Industry = "Banca" | "Seguros y asistencia" | "Retail" | "Telecomunicaciones";
 
 export const SPONSORS: { name: string; industry: Industry; logo: StaticImageData; color: string; colorLogo?: StaticImageData }[] = [

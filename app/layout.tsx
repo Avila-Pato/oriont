@@ -22,6 +22,11 @@ const display = Space_Grotesk({
   subsets: ["latin"],
 });
 
+/*
+ * SEO → metatags: Next arma los <meta> del <head> con este objeto (no se escriben a mano).
+ * title/description = lo que muestra Google; canonical = URL oficial; openGraph/twitter = vista
+ * previa al compartir; robots = permite indexar. Los textos salen de data/site.ts.
+ */
 export const metadata: Metadata = {
   // base de las URL absolutas (canónica, og:url, og:image) metatags
   metadataBase: new URL(SITE_URL),

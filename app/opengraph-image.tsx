@@ -7,6 +7,8 @@ import { HERO_COPY } from "@/data/hero";
  * Imagen al compartir el sitio (WhatsApp, LinkedIn, X, Slack…): fondo marino de la marca, logo y
  * el lema del hero. Se genera una vez al compilar (no depende de la petición).
  * El logo va en PNG (assets/og): el generador de imágenes no lee .webp.
+ * SEO: Next la detecta por el nombre y agrega solo las etiquetas og:image y twitter:image; debe
+ * quedarse en app/ y llamarse así. Para verla: localhost:3000/opengraph-image
  */
 
 export const alt = "Oriont: conectamos al sponsor con el cliente final";
