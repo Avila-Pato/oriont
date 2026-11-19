@@ -110,7 +110,10 @@ export default function HeroGallery() {
           className={`absolute ${it.className} will-change-transform`}
         >
           <div className="relative h-full w-full overflow-hidden rounded-xl shadow-[0_20px_40px_-20px_rgba(33,37,92,0.35)] xl:scale-110 2xl:scale-[1.3]">
-            <Image src={it.src} alt={it.alt} fill sizes="(min-width: 1536px) 360px, 280px" loading="eager" placeholder="blur" className="object-cover" />
+            {/* lazy, no eager: con eager Next ponía un <link rel="preload"> por foto y el navegador las
+                bajaba también en celular, donde la galería está oculta (hidden lg:block). Lazy + oculta
+                = no se descargan; en escritorio están en pantalla y cargan igual al inicio. */}
+            <Image src={it.src} alt={it.alt} fill sizes="(min-width: 1536px) 360px, 280px" loading="lazy" placeholder="blur" className="object-cover" />
           </div>
         </div>
       ))}

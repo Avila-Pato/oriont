@@ -2,12 +2,25 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import { Flip } from "gsap/Flip";
+import type { Flip as FlipPlugin } from "gsap/Flip";
 import { useGSAP } from "@gsap/react";
 import { TEAM_CARDS } from "@/data/about";
+import { useNearViewport } from "@/hooks/useNearViewport";
 import TeamCard from "./TeamCard";
 
-gsap.registerPlugin(Flip, useGSAP);
+gsap.registerPlugin(useGSAP);
+
+/**
+ * Flip (~14 KB) solo hace falta al revolver, y la grilla está al final de la página: se baja aparte
+ * (import dinámico) cuando la grilla se acerca a la pantalla, no en la carga inicial.
+ */
+let Flip: typeof FlipPlugin | null = null;
+let flipLoading: Promise<typeof FlipPlugin> | null = null;
+const loadFlip = () =>
+  (flipLoading ??= import("gsap/Flip").then((m) => {
+    gsap.registerPlugin(m.Flip);
+    return (Flip = m.Flip);
+  }));
 
 
 type MotionPermission = "granted" | "denied";
@@ -44,7 +57,7 @@ const shuffle = (arr: number[]) => {
 export default function ShakeTeamGrid() {
   const root = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLDivElement>(null);
-  const flipState = useRef<Flip.FlipState | null>(null);
+  const flipState = useRef<ReturnType<typeof FlipPlugin.getState> | null>(null);
   const busy = useRef(false);
   const delays = useRef(new Map<HTMLElement, number>()); // retraso de cada foto en la revuelta
   const visible = useRef(false);
@@ -65,6 +78,12 @@ export default function ShakeTeamGrid() {
   useGSAP(() => {}, { scope: root });
   const shakeRef = useRef<() => void>(() => {});
 
+  // Flip se pide cuando la grilla está a una pantalla de distancia: al revolver ya está listo
+  const near = useNearViewport(root);
+  useEffect(() => {
+    if (near) void loadFlip();
+  }, [near]);
+
   /**
    * La revuelta, en un solo movimiento continuo (sin pausa entre "saltar" y "cambiar de lugar"):
    * - capa [data-card]: Flip la lleva de su celda vieja a la nueva
@@ -73,13 +92,19 @@ export default function ShakeTeamGrid() {
    */
   const shake = () => {
     if (busy.current || !grid.current) return;
+    // caso raro: revolvieron antes de que llegara Flip (red muy lenta): se revuelve al llegar
+    const F = Flip;
+    if (!F) {
+      void loadFlip().then(() => shakeRef.current());
+      return;
+    }
     busy.current = true;
     navigator.vibrate?.([40, 30, 60]);
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const cards = gsap.utils.toArray<HTMLElement>("[data-card]", grid.current);
 
     delays.current = new Map(cards.map((c) => [c, reduce ? 0 : gsap.utils.random(0, MAX_DELAY)]));
-    flipState.current = Flip.getState(cards);
+    flipState.current = F.getState(cards);
     setOrder((o) => shuffle(o));
     setMsg(MESSAGES[shakes.current++ % MESSAGES.length]);
     gsap.delayedCall(reduce ? 0.3 : DURATION + MAX_DELAY, () => (busy.current = false));
@@ -107,11 +132,12 @@ export default function ShakeTeamGrid() {
   // tras re-renderizar con el nuevo orden: cada foto vuela desde donde estaba a su nueva celda
   useLayoutEffect(() => {
     const state = flipState.current;
-    if (!state || !grid.current) return;
+    const F = Flip;
+    if (!state || !grid.current || !F) return;
     flipState.current = null;
     const cards = gsap.utils.toArray<HTMLElement>("[data-card]", grid.current);
     const delay = delays.current;
-    Flip.from(state, {
+    F.from(state, {
       targets: cards,
       scale: true, // escala en vez de width/height: solo transform
       duration: DURATION,

@@ -4,8 +4,6 @@ import { useRef, type CSSProperties } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
-import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 import { useGSAP } from "@gsap/react";
 
 import { SPONSORS } from "@/data/sponsors";
@@ -18,7 +16,18 @@ import logoDental from "@/public/images/Logo_DentalAssist.webp";
 import { CELL_ENTRANCE } from "./cellEntrance";
 import SponsorLogo from "./SponsorLogo";
 
-gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, MotionPathPlugin, useGSAP);
+gsap.registerPlugin(ScrollTrigger, useGSAP);
+
+/**
+ * DrawSVG + MotionPath (~28 KB) solo los usa la señal al pasar el cursor por un logo: se bajan
+ * aparte (import dinámico) cuando el abanico se acerca a la pantalla. En celular el abanico está
+ * oculto (display:none), nunca se "acerca" y no se descargan.
+ */
+let signalPlugins: Promise<void> | null = null;
+const loadSignalPlugins = () =>
+  (signalPlugins ??= Promise.all([import("gsap/DrawSVGPlugin"), import("gsap/MotionPathPlugin")]).then(([d, m]) => {
+    gsap.registerPlugin(d.DrawSVGPlugin, m.MotionPathPlugin);
+  }));
 
 /*
  * Escritorio: "abanico de circuito". Las 3 marcas del grupo (Conectados TMK, Oriont, Dental Assist)
@@ -238,8 +247,11 @@ export default function SponsorCircuit() {
         const traces = q<SVGPathElement>("[data-trace]");
         const sparks = q<SVGCircleElement>("[data-spark]");
         const busy = new Set<number>();
+        let ready = false;
+        void loadSignalPlugins().then(() => (ready = true));
         const signal = (i: number) => {
-          if (busy.has(i)) return;
+          if (!ready || busy.has(i)) return; // sin plugins aún: ese paso del cursor no dispara señal
+
           busy.add(i);
           // cada vez llega a un punto distinto del primer arco (al azar)
           traces[i].setAttribute("d", toFirstRing(DRAWING.nodes[i], Math.random() * 2 - 1));

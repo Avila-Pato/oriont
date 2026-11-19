@@ -3,12 +3,21 @@
 import { useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { SplitText } from "gsap/SplitText";
+import type { SplitText as SplitTextPlugin } from "gsap/SplitText";
 import { useGSAP } from "@gsap/react";
 
 import { useNearViewport } from "@/hooks/useNearViewport";
 
-gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP);
+gsap.registerPlugin(ScrollTrigger, useGSAP);
+
+/** SplitText (~10 KB) solo lo usa esta entrada, más abajo en la página: se baja aparte (import
+ *  dinámico) cuando la sección se acerca, no en la carga inicial */
+let splitLoading: Promise<typeof SplitTextPlugin> | null = null;
+const loadSplitText = () =>
+  (splitLoading ??= import("gsap/SplitText").then((m) => {
+    gsap.registerPlugin(m.SplitText);
+    return m.SplitText;
+  }));
 
 /**
  * Entrada de la sección Sponsors atada al scroll (scrub): avanza y retrocede con la rueda del mouse.
@@ -34,7 +43,7 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
       // partida, obligaba a recalcularlos en el acto (una tarea de ~120 ms con CPU lenta, que se
       // sentía como un salto justo al soltarse la cadena de valor). La sección está a una
       // pantalla de distancia, así que hay tiempo de sobra.
-      const setup = contextSafe!(() =>
+      const build = contextSafe!((SplitText: typeof SplitTextPlugin) =>
         mm.add(
           { motion: "(prefers-reduced-motion: no-preference)", desktop: "(min-width: 1024px)" },
           (ctx) => {
@@ -81,8 +90,13 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
         ),
       );
 
+      // el plugin se pide ya (en paralelo); se arma en el momento libre, cuando ya llegó
+      let cancelled = false;
+      const split = loadSplitText();
+      const setup = () => void split.then((S) => !cancelled && build(S));
       const idle = window.requestIdleCallback?.(setup, { timeout: 400 }) ?? window.setTimeout(setup, 60);
       return () => {
+        cancelled = true;
         if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
         else clearTimeout(idle);
         mm.revert();
