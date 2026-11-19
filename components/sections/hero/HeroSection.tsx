@@ -23,19 +23,13 @@ export default function HeroSection() {
          ring-[#21255c]/[0.06] sm:p-7 lg:w-(--cw)
         xl:p-7 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.35)] backdrop-blur-xl lg:p-8">
 
-          {/* SEO: la etiqueta chica va DENTRO del h1, así el título que lee Google dice de qué
-              trata el sitio ("Bancaseguros y telecomunicaciones. Conectamos al sponsor con el
-              cliente final.") y en pantalla se ve igual que antes (etiqueta + título grande). */}
-          <h1>
-            <span className="flex items-center gap-3 font-mono text-[11px] font-normal uppercase tracking-[0.25em] text-[#248caa] xl:text-[12px]">
-              <span aria-hidden className="h-px w-6 shrink-0 bg-[#248caa] xl:w-8" />
-              {HERO_COPY.eyebrow}
-            </span>
-            {/* separa las dos frases en el texto del h1 (no se ve) */}
-            <span className="sr-only">. </span>
-            <span className="mt-5 block font-display text-[30px] font-semibold leading-[1.08] tracking-tight sm:text-[38px] lg:text-[42px] xl:text-[40px] 2xl:text-[50px]">
-              {HERO_COPY.title} <span className="text-[#248caa]">{HERO_COPY.highlight}</span>
-            </span>
+          <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-[#248caa] xl:text-[12px]">
+            <span className="h-px w-6 bg-[#248caa] xl:w-8" />
+            {HERO_COPY.eyebrow}
+          </p>
+          <h1 className="mt-5 font-display text-[30px] font-semibold leading-[1.08] tracking-tight sm:text-[38px] lg:text-[42px] xl:text-[40px] 2xl:text-[50px]">
+            {HERO_COPY.title}{" "}
+            <span className="text-[#248caa]">{HERO_COPY.highlight}</span>
           </h1>
           <p className="mt-5 text-[15px] leading-relaxed text-[#21255c]/70 xl:mt-6 xl:text-[17px]">
             {HERO_COPY.text}

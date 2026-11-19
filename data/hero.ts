@@ -15,6 +15,8 @@ export const HERO_COPY = {
   title: "Conectamos al sponsor con el",
   highlight: "cliente final.",
   text: "Ofrecemos servicios, productos y tecnología asociados al segmento bancaseguros y telecomunicaciones, en toda la cadena de valor.",
+
+  
   primary: { label: "Ver soluciones", href: "#servicios" },
   secondary: { label: "Conócenos", href: "#nosotros" },
 };

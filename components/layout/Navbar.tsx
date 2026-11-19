@@ -13,7 +13,6 @@ type Box = { left: number; top: number; width: number; height: number; radius: n
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [compact, setCompact] = useState(false);
   const [shift, setShift] = useState({ list: 0, cta: 0 });
   // cápsula azul: solo enlaces arriba, enlaces + botón al bajar
@@ -36,9 +35,7 @@ export default function Navbar() {
   // al bajar se compacta y se mantiene así; al volver arriba del todo se abre
   useEffect(() => {
     const onScroll = () => {
-      const y = window.scrollY;
-      setScrolled(y > 24);
-      setCompact(y > 80);
+      setCompact(window.scrollY > 80);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -130,19 +127,13 @@ export default function Navbar() {
         <a
           href="#"
           aria-label="Oriont, inicio"
-          className={`pointer-events-auto relative justify-self-start rounded-full px-3 py-2 transition-opacity duration-500 ${
+          // cápsula blanca casi opaca con borde y sombra fijos: el logo se despega del fondo claro
+          // del hero desde el primer frame (antes era blanco al 75 % sin borde y se perdía)
+          className={`pointer-events-auto relative justify-self-start rounded-full bg-white/95 px-4 py-2 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-opacity duration-500 ${
             tight ? "lg:pointer-events-none lg:opacity-0" : ""
           }`}
         >
-          {/* fondo del logo al bajar: capa fija que solo cambia opacity (animar fondo, sombra y
-              blur obligaba a repintar en cada frame) */}
-          <span
-            aria-hidden="true"
-            className={`absolute inset-0 rounded-full border border-[#21255c]/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl transition-opacity duration-500 ${
-              scrolled ? "opacity-100" : "opacity-0"
-            }`}
-          />
-          <OriontLogo className="relative h-9 w-auto" eager />
+          <OriontLogo className="relative h-10 w-auto" eager />
         </a>
 
         {/* enlaces: cápsula central con indicador deslizante */}
@@ -155,7 +146,7 @@ export default function Navbar() {
           {/* indicador: ocupa toda la lista y se recorta con clip-path (sin mover el layout) */}
           <span
             aria-hidden="true"
-            className="absolute inset-x-0 top-1.5 bottom-1.5 bg-[#f5f0e6] transition-[clip-path,opacity] duration-300 ease-out"
+            className="absolute inset-x-0 top-1.5 bottom-1.5 bg-white transition-[clip-path,opacity] duration-300 ease-out"
             style={{
               clipPath: `inset(0 ${pill.width}px 0 ${pill.left}px round 999px)`,
               opacity: pill.visible ? 1 : 0,
@@ -177,7 +168,7 @@ export default function Navbar() {
                 onBlur={() => setHovered(null)}
                 // texto oscuro sobre el indicador: el enlace bajo el mouse, o la sección actual
                 className={`peer relative z-10 block rounded-full px-5 py-2 text-[13px] font-medium transition-colors duration-300 focus-visible:outline-none ${
-                  target === l.href ? "text-[#21255c]" : "text-[#f5f0e6]/75"
+                  target === l.href ? "text-[#21255c]" : "text-white/75"
                 }`}
               >
                 {l.label}
@@ -205,11 +196,9 @@ export default function Navbar() {
               e.preventDefault();
               openContact();
             }}
-            // fondo y borde en capas (::before / ::after) que solo animan opacity: color,
-            // background-color y border-color no se componen en GPU
-            className={`group relative isolate hidden items-center gap-3 rounded-full border border-transparent bg-[#f5f0e6]/80 py-1.5 pl-5 pr-1.5 text-[13px] font-medium text-[#21255c] backdrop-blur-xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] before:absolute before:-inset-px before:-z-10 before:rounded-full before:bg-[#f5f0e6] before:transition-opacity before:duration-500 after:absolute after:-inset-px after:-z-10 after:rounded-full after:border after:border-[#21255c] after:transition-opacity after:duration-500 hover:after:opacity-100 sm:inline-flex ${
-              tight ? "before:opacity-100 after:opacity-0" : "before:opacity-0 after:opacity-20"
-            }`}
+            // misma cápsula blanca que el logo, arriba y al bajar (antes crema que cambiaba al
+            // hacer scroll). El borde del hover va en ::after y solo anima opacity
+            className="group relative hidden items-center gap-3 rounded-full bg-white/95 py-1.5 pl-5 pr-1.5 text-[13px] font-medium text-[#21255c] shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-[#21255c] after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
             style={{ transform: `translateX(${tight ? shift.cta : 0}px)` }}
           >
             {NAV_CTA.label}
