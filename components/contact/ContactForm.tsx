@@ -332,16 +332,23 @@ export default function ContactForm({ className = "" }: { className?: string }) 
 
   const errorCount = Object.values(errors).filter(Boolean).length;
   const email = ABOUT_CTA.contact[1].value;
+  // mismo estilo que el enlace a la política de privacidad, para que las dos líneas se vean iguales
+  const linkClass = "underline underline-offset-2 transition-colors hover:text-[#248caa]";
+  const mailLink = (
+    <a href={`mailto:${email}`} className={linkClass}>
+      {email}
+    </a>
+  );
   const statusText = errorCount
     ? errorCount === 1
       ? "Falta completar o corregir 1 campo."
       : `Faltan completar o corregir ${errorCount} campos.`
     : {
-        idle: `También puedes escribirnos a ${email}`,
+        idle: <>También puedes escribirnos a {mailLink}.</>,
         captcha: "Completa la verificación de seguridad antes de enviar.",
         sending: "Enviando tu mensaje…",
         sent: "¡Gracias! Recibimos tu mensaje y te responderemos pronto.",
-        error: `No pudimos enviar el mensaje. Intenta de nuevo o escríbenos a ${email}.`,
+        error: <>No pudimos enviar el mensaje. Intenta de nuevo o escríbenos a {mailLink}.</>,
       }[status];
   const statusBad = errorCount > 0 || status === "captcha" || status === "error";
 
@@ -466,7 +473,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
           <div ref={boxRef} />
           {captchaFailed && (
             <p className="text-[12px] text-[#c2410c]">
-              No se pudo cargar la verificación de seguridad. Recarga la página o escríbenos a {email}.
+              No se pudo cargar la verificación de seguridad. Recarga la página o escríbenos a {mailLink}.
             </p>
           )}
         </div>
@@ -484,7 +491,8 @@ export default function ContactForm({ className = "" }: { className?: string }) 
             aria-live="polite"
             className={`flex min-h-[3lh] items-center text-[12px] leading-snug 2xl:text-[13px] ${statusBad ? "text-[#c2410c]" : "text-[#21255c]/50"}`}
           >
-            {statusText}
+            {/* span: con flex, el texto y el enlace serían ítems separados y no fluirían juntos */}
+            <span>{statusText}</span>
           </p>
 
           <button
@@ -508,9 +516,9 @@ export default function ContactForm({ className = "" }: { className?: string }) 
       {/* aviso de consentimiento (Ley 21.719): siempre visible, así no aparece y mueve nada.
           Pestaña nueva: el formulario puede estar en el panel y no se pierde lo escrito.
           En pantallas bajas el mensaje se achica (h-16) para que la tarjeta siga cabiendo en 1280×600 */}
-      <p className="mt-3 lg:short:mt-1.5 text-[11px] leading-snug text-[#21255c]/50 2xl:text-[12px]">
+      <p className="mt-3 lg:short:mt-1.5 text-[12px] leading-snug text-[#21255c]/50 2xl:text-[13px]">
         Al enviar aceptas que usemos tus datos para responderte, según nuestra{" "}
-        <a href="/privacidad" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-[#248caa]">
+        <a href="/privacidad" target="_blank" rel="noopener" className={linkClass}>
           política de privacidad
         </a>
         .
