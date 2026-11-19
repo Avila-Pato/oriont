@@ -58,6 +58,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.*.*", "**.devtunnels.ms", "*.trycloudflare.com"],
   experimental: {
     agentFeedback: true,
+    // inlineCss probado y descartado (nov 2026): en Next 16.4 el CSS (80 KB) queda 3 veces en el
+    // HTML (<style> + 2 copias en el payload RSC) y Lighthouse móvil dio FCP/LCP 1.07 s → 1.29 s.
   },
   cacheComponents: true,
   images: {
