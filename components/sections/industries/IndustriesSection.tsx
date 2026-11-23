@@ -1,4 +1,3 @@
-import SponsorGrid from "./parts/SponsorGrid";
 import SponsorLive from "./parts/SponsorLive";
 import SponsorCircuit from "./parts/SponsorCircuit";
 import SponsorScrollColor from "./parts/SponsorScrollColor";
@@ -6,7 +5,9 @@ import SponsorsReveal from "./parts/SponsorsReveal";
 
 export default function IndustriesSection() {
   return (
-    <SponsorsReveal id="industrias" className="w-full bg-white lg:min-h-[100svh]">
+    // solo escritorio: en celular la sección no se muestra (decisión de contenido). Con display:none
+    // sus observers nunca la ven "cerca", así que tampoco se preparan sus animaciones.
+    <SponsorsReveal id="industrias" className="w-full bg-white max-lg:hidden lg:min-h-[100svh]">
       {/* título y descripción arriba, todas las marcas abajo */}
       <div className="container-page grid gap-12 py-16 lg:gap-16">
         {/* escritorio: título a la izquierda y, a la derecha, la marca encendida en el muro */}
@@ -33,12 +34,10 @@ export default function IndustriesSection() {
             forman parte de lo que hacemos.
           </p>
         </div>
-        <div className="hidden lg:block">
+        <div>
           <SponsorLive />
         </div>
         </div>
-        {/* celular/tablet: grilla (escritorio: abanico, abajo a todo el ancho) */}
-        <SponsorGrid />
         <SponsorScrollColor />
       </div>
       {/* escritorio: abanico de circuito desde el medio del borde izquierdo, fuera del contenedor

@@ -22,7 +22,7 @@ const loadSplitText = () =>
 /**
  * Entrada de la sección Sponsors atada al scroll (scrub): avanza y retrocede con la rueda del mouse.
  * La línea del título se dibuja, las palabras suben tras una máscara y aparece el párrafo; los
- * logos (SponsorGrid / SponsorCircuit) entran una vez en ola, con transiciones CSS (cellEntrance.ts).
+ * logos (SponsorCircuit) entran una vez en ola, con transiciones CSS (cellEntrance.ts).
  * Solo transform/opacity (sin CLS). El contenido llega renderizado desde el servidor como children;
  * aquí solo se anima, buscando por data-atributos:
  *   [data-reveal-line]  [data-reveal-title]  [data-reveal-text]  [data-logo-cell]

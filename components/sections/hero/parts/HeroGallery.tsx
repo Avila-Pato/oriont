@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { HERO_GALLERY as items } from "@/data/hero";
+import { watchVisible } from "@/hooks/useNearViewport";
 
 
 export default function HeroGallery() {
@@ -85,8 +86,7 @@ export default function HeroGallery() {
     const wrap = wrapRef.current!;
     const ro = new ResizeObserver(measure);
     ro.observe(wrap);
-    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()));
-    io.observe(wrap);
+    const unwatch = watchVisible(wrap, (v) => (v ? start() : stop()));
 
     window.addEventListener("mousemove", onMove, { passive: true });
     document.documentElement.addEventListener("mouseleave", onLeave);
@@ -94,7 +94,7 @@ export default function HeroGallery() {
       window.removeEventListener("mousemove", onMove);
       document.documentElement.removeEventListener("mouseleave", onLeave);
       ro.disconnect();
-      io.disconnect();
+      unwatch();
       stop();
     };
   }, []);

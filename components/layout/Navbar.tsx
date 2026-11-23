@@ -249,7 +249,7 @@ export default function Navbar() {
         }`}
       >
         <ul className="flex flex-col px-3 pt-3">
-          {NAV_LINKS.map((l, i) => (
+          {NAV_LINKS.filter((l) => !("desktopOnly" in l)).map((l, i) => (
             <li key={l.href} className="border-b border-navy/8 last:border-0">
               <a
                 href={l.href}

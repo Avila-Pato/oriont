@@ -15,14 +15,14 @@ const HOLD = 1100;
 
 /**
  * Enciende logos al azar con su color de marca (marca la celda con data-on; el color y la
- * transición los pone SponsorGrid con CSS):
+ * transición los pone SponsorLogo con CSS):
  * - mientras se hace scroll sobre la grilla, seguido
  * - con la grilla en pantalla y sin scroll, de a uno cada tanto
  * Cada logo se apaga solo. Fuera de pantalla no corre nada. No dibuja nada.
  */
 export default function SponsorScrollColor() {
   useEffect(() => {
-    // hay dos versiones (grilla en celular, red en escritorio): se encienden solo las visibles
+    // la sección solo se muestra en escritorio (abanico); se encienden solo las celdas visibles
     const grids = Array.from(document.querySelectorAll<HTMLElement>("[data-sponsor-grid]"));
     if (!grids.length || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     // cuál se ve sale del ancho de pantalla (lg = 1024px, como en las clases), no de medir el

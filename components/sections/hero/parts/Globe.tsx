@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { COUNTRIES, type CountryCode } from "@/data/countries";
+import { watchVisible } from "@/hooks/useNearViewport";
 // puntos de tierra precalculados por scripts/build-globe-dots.mjs (npm run globe:dots)
 import DOTS from "@/data/globe-dots.json";
 
@@ -102,6 +103,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
     if (!ctx) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const COARSE = window.matchMedia("(pointer: coarse)").matches;
     const points = loadLandDots();
     // Datos de los puntos en arreglos contiguos (el bucle de dibujo los recorre ~18.000 veces por
     // frame): coordenadas, país (índice en CODES, -1 = ninguno) y la fase del destello de cada uno
@@ -143,17 +145,80 @@ export default function Globe({ className = "", active = null, focus = null, onH
 
     let w = 0;
     let h = 0;
+    let dpr = 1;
     // El tamaño llega del ResizeObserver (ya calculado tras el layout): antes se llamaba a
     // getBoundingClientRect en el montaje, lo que forzaba un reflow síncrono recién hidratado.
     // El primer callback llega antes del primer paint, así que no se ve un frame vacío.
     const resize = ([entry]: ResizeObserverEntry[]) => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // En táctil, tope 1,5: a este tamaño no se distingue de 2 y son ~44 % menos píxeles que
+      // pintar por frame (en el perfil, pintar el canvas era la mayor parte del trabajo)
+      dpr = Math.min(window.devicePixelRatio || 1, COARSE ? 1.5 : 2);
       w = entry.contentRect.width;
       h = entry.contentRect.height;
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
+    // Capas fijas de la esfera (atmósfera + cuerpo detrás de los puntos; sombra + brillo del borde
+    // delante), pintadas UNA vez en canvas ocultos. Antes se rehacían 4 degradados radiales grandes
+    // en cada frame; ahora cada frame solo las copia (drawImage). Solo dependen del radio: se
+    // generan al radio máximo (hover + zoom de país) y se copian escaladas, siempre hacia abajo.
+    const SPRITE_MAX = 1.05 * 1.18;
+    let sprR = 0;
+    let sprDpr = 0;
+    const back = document.createElement("canvas");
+    const front = document.createElement("canvas");
+    const makeSprites = (Rs: number) => {
+      sprR = Rs;
+      sprDpr = dpr;
+      const ATMO = 1.18;
+      back.width = back.height = Math.ceil(2 * Rs * ATMO * dpr);
+      const b = back.getContext("2d")!;
+      b.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const o = back.width / dpr / 2;
+      const atmo = b.createRadialGradient(o, o, Rs * 0.96, o, o, Rs * ATMO);
+      atmo.addColorStop(0, `rgba(${LINE},0.08)`);
+      atmo.addColorStop(1, `rgba(${LINE},0)`);
+      b.fillStyle = atmo;
+      b.beginPath();
+      b.arc(o, o, Rs * ATMO, 0, Math.PI * 2);
+      b.fill();
+      // esfera clara (blanco → gris azulado), en la familia del fondo #F8F9F9
+      const body = b.createRadialGradient(o - Rs * 0.35, o - Rs * 0.4, Rs * 0.05, o, o, Rs);
+      body.addColorStop(0, "#ffffff");
+      body.addColorStop(0.55, "#f3f5f8");
+      body.addColorStop(0.88, "#e3e8ef");
+      body.addColorStop(1, "#d2d9e3");
+      b.fillStyle = body;
+      b.beginPath();
+      b.arc(o, o, Rs, 0, Math.PI * 2);
+      b.fill();
+
+      // volumen: luz a la derecha, sombra a la izquierda (recortado a la esfera)
+      front.width = front.height = Math.ceil(2 * Rs * dpr);
+      const f = front.getContext("2d")!;
+      f.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const c = front.width / dpr / 2;
+      f.beginPath();
+      f.arc(c, c, Rs, 0, Math.PI * 2);
+      f.clip();
+      const shade = f.createRadialGradient(c + Rs * 0.25, c - Rs * 0.15, Rs * 0.75, c + Rs * 0.25, c - Rs * 0.15, Rs * 1.3);
+      shade.addColorStop(0, "rgba(33,37,92,0)");
+      shade.addColorStop(1, "rgba(33,37,92,0.14)");
+      f.fillStyle = shade;
+      f.fillRect(c - Rs, c - Rs, Rs * 2, Rs * 2);
+      const rim = f.createRadialGradient(c - Rs * 0.12, c, Rs * 0.92, c - Rs * 0.12, c, Rs * 1.12);
+      rim.addColorStop(0, "rgba(255,255,255,0)");
+      rim.addColorStop(1, "rgba(255,255,255,0.9)");
+      f.fillStyle = rim;
+      f.fillRect(c - Rs, c - Rs, Rs * 2, Rs * 2);
+    };
+    /** copia una capa centrada en (cx, cy) para el radio R actual */
+    const blit = (spr: HTMLCanvasElement, cx: number, cy: number, R: number) => {
+      const s = (spr.width / dpr) * (R / sprR);
+      ctx.drawImage(spr, cx - s / 2, cy - s / 2, s, s);
+    };
+
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
@@ -183,7 +248,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
     let lastCursor = "";
     let cosT = Math.cos(tilt);
     let sinT = Math.sin(tilt);
-    const AUTO = 0.00002; // velocidad de mundo
+    const AUTO = 0.00001; // velocidad de giro solo (rad/ms ≈ 0,6°/s)
     let introStart = 0; // momento del primer frame con tamaño (0 = aún no)
     // chispas de la entrada ("soldadura" del frente): x, y, vx, vy en px y px/ms; vida en ms
     const sparks: { x: number; y: number; vx: number; vy: number; life: number; max: number }[] = [];
@@ -274,12 +339,30 @@ export default function Globe({ className = "", active = null, focus = null, onH
     };
     const hidden = (q: { nx: number; ny: number; z: number }) => q.z < 0 && q.nx * q.nx + q.ny * q.ny < 1;
 
-    const IDLE_FRAME = 1000 / 30; // ms entre dibujos cuando nadie interactúa
+    // ms entre dibujos cuando nadie interactúa. En reposo el giro es tan lento (~0,03° por frame)
+    // que 20 fps se ve igual de fluido; la entrada sigue a 30 (el frente de escaneo se mueve rápido).
+    // Sin esto el globo ocupaba el hilo principal de forma continua (TBT alto en móvil).
+    const IDLE_FRAME = 1000 / 20;
+    const INTRO_FRAME = 1000 / 30;
+    // En reposo, además, entre un dibujo y el siguiente pasa al menos 3× lo que costó el frame
+    // (promedio móvil): en un teléfono lento un frame cuesta ~65 ms y a 20 fps el hilo principal
+    // no quedaba nunca libre. Así baja de fps solo donde hace falta y deja ≥ 2/3 del hilo libre.
+    // El costo se mide como el tiempo hasta el siguiente rAF (incluye el rasterizado del canvas,
+    // que es la mayor parte y ocurre después del JS); en un equipo rápido es ~16 ms → 20 fps.
+    const IDLE_BUSY = 3;
+    const INTRO_BUSY = 2;
+    let cost = 0;
+    let drewAt = 0; // timestamp del último frame dibujado, hasta medir su costo (0 = ya medido)
     const draw = (now: number) => {
       // sin tamaño todavía (el ResizeObserver aún no llega): no dibujar, pero mantener el loop
       if (!w || !h) {
         raf = requestAnimationFrame(draw);
         return;
+      }
+      // primer rAF después de un dibujo: lo que tardó en llegar = costo completo de ese frame
+      if (drewAt) {
+        cost += (now - drewAt - cost) * 0.3;
+        drewAt = 0;
       }
       // --- entrada: frente de escaneo que sube desde el polo sur ---
       if (!introStart) {
@@ -301,8 +384,15 @@ export default function Globe({ className = "", active = null, focus = null, onH
         Math.abs(velRot) < 1e-4 && Math.abs(velTilt) < 1e-4 && Math.abs(tilt - BASE_TILT) < 1e-3;
       // La entrada también va a 30 fps (si nadie interactúa): coincide con la carga e hidratación
       // de la página y a 60 fps duplicaba el trabajo del hilo principal sin verse distinto.
-      const calm = idle || (introing && !mouse && !dragging);
-      if (calm && now - last < IDLE_FRAME - 2) {
+      const calmIntro = introing && !mouse && !dragging;
+      // la entrada también se espacia en equipos lentos (2×: un poco más fluida que el reposo);
+      // su avance va por reloj, así que igual dura lo mismo, solo con menos cuadros
+      const gap = idle
+        ? Math.max(IDLE_FRAME, cost * IDLE_BUSY)
+        : calmIntro
+          ? Math.max(INTRO_FRAME, cost * INTRO_BUSY)
+          : 0;
+      if (gap && now - last < gap - 2) {
         raf = requestAnimationFrame(draw);
         return;
       }
@@ -446,25 +536,11 @@ export default function Globe({ className = "", active = null, focus = null, onH
         ctx.clip();
       }
 
-      // atmósfera: halo cian alrededor de la esfera
-      const atmo = ctx.createRadialGradient(cx, cy, R * 0.96, cx, cy, R * 1.18);
-      atmo.addColorStop(0, `rgba(${LINE},0.08)`);
-      atmo.addColorStop(1, `rgba(${LINE},0)`);
-      ctx.fillStyle = atmo;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R * 1.18, 0, Math.PI * 2);
-      ctx.fill();
-
-      // esfera clara (blanco → gris azulado), en la familia del fondo #F8F9F9
-      const body = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.05, cx, cy, R);
-      body.addColorStop(0, "#ffffff");
-      body.addColorStop(0.55, "#f3f5f8");
-      body.addColorStop(0.88, "#e3e8ef");
-      body.addColorStop(1, "#d2d9e3");
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.fill();
+      // atmósfera (halo cian) + esfera clara: capa fija ya pintada (ver makeSprites).
+      // Se regenera solo si cambió el tamaño del globo o la densidad de píxeles.
+      const Rmax = baseR * SPRITE_MAX;
+      if (sprDpr !== dpr || Math.abs(Rmax - sprR) > 0.5) makeSprites(Rmax);
+      blit(back, cx, cy, R);
 
       // puntos (agrupados por brillo) + detección de hover por país
       const LENS = 80;
@@ -633,23 +709,8 @@ export default function Globe({ className = "", active = null, focus = null, onH
         }
       }
 
-      // volumen: luz a la derecha, sombra a la izquierda
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.clip();
-    
-      const shade = ctx.createRadialGradient(cx + R * 0.25, cy - R * 0.15, R * 0.75, cx + R * 0.25, cy - R * 0.15, R * 1.3);
-      shade.addColorStop(0, "rgba(33,37,92,0)");
-      shade.addColorStop(1, "rgba(33,37,92,0.14)");
-      ctx.fillStyle = shade;
-      ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
-      const rim = ctx.createRadialGradient(cx - R * 0.12, cy, R * 0.92, cx - R * 0.12, cy, R * 1.12);
-      rim.addColorStop(0, "rgba(255,255,255,0)");
-      rim.addColorStop(1, "rgba(255,255,255,0.9)");
-      ctx.fillStyle = rim;
-      ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
-      ctx.restore();
+      // volumen: luz a la derecha, sombra a la izquierda (capa fija, ver makeSprites)
+      blit(front, cx, cy, R);
       ctx.strokeStyle = `rgba(${LINE},0.18)`;
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -904,6 +965,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
 
       orbits(true);
       ctx.globalAlpha = 1;
+      drewAt = now;
       raf = requestAnimationFrame(draw);
     };
 
@@ -912,6 +974,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
     const start = () => {
       if (raf) return;
       last = performance.now();
+      drewAt = 0; // el tiempo detenido no es costo de dibujo
       raf = requestAnimationFrame(draw);
     };
     const stop = () => {
@@ -921,12 +984,13 @@ export default function Globe({ className = "", active = null, focus = null, onH
     // Se observa el contenedor del globo (la caja visible), no el canvas: el canvas es 28 % más
     // grande y se sale por abajo, así que con Cadena de valor ya en pantalla (y el globo tapado)
     // seguía "visible" y dibujaba a 30 fps sin que se viera.
-    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()));
-    io.observe(hit);
+    // Con menos del 15 % del globo a la vista (solo asoma el borde) ya no se dibuja: antes bastaba
+    // 1 px visible para seguir animando.
+    const unwatch = watchVisible(hit, (v) => (v ? start() : stop()), 0.15);
 
     return () => {
       stop();
-      io.disconnect();
+      unwatch();
       ro.disconnect();
       hit.removeEventListener("pointerdown", onDown);
       hit.removeEventListener("pointermove", onMove);

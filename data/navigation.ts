@@ -2,7 +2,8 @@
 export const NAV_LINKS = [
   { label: "Soluciones", href: "#soluciones" },
   { label: "Servicios", href: "#servicios" },
-  { label: "Industrias", href: "#industrias" },
+  // la sección de sponsors solo existe en escritorio: no va en el menú de celular
+  { label: "Industrias", href: "#industrias", desktopOnly: true },
   { label: "Nosotros", href: "#nosotros" },
 ];
 
