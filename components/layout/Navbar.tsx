@@ -181,7 +181,7 @@ export default function Navbar() {
         <div className="pointer-events-auto col-start-3 flex items-center gap-2 justify-self-end">
           <button
             type="button"
-            className={`relative hidden h-10 rounded-full px-3 font-mono text-[11px] tracking-[0.2em] text-navy opacity-60 transition-opacity hover:opacity-100 md:block ${
+            className={`relative hidden h-10 rounded-full px-3 font-mono text-[11px] tracking-[0.2em] text-navy opacity-75 transition-opacity hover:opacity-100 md:block ${
               tight ? "lg:pointer-events-none lg:opacity-0" : ""
             }`}
             aria-label="Idioma: español"
