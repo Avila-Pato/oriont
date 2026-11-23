@@ -75,6 +75,7 @@ export default function ContactDrawer() {
     closing.current = true;
     tl.current?.kill();
     smoothFrames(true);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     tl.current = gsap
       .timeline({
         onComplete: () => {
@@ -85,9 +86,9 @@ export default function ContactDrawer() {
           closing.current = false;
         },
       })
-      .to(content.current, { opacity: 0, duration: 0.2, ease: "power1.in" }, 0)
-      .to(panel.current, { xPercent: 100, duration: 0.45, ease: "power3.in" }, 0)
-      .to(veil.current, { opacity: 0, duration: 0.4, ease: "power1.in" }, 0.05);
+      .to(content.current, { opacity: 0, duration: reduce ? 0 : 0.2, ease: "power1.in" }, 0)
+      .to(panel.current, { xPercent: 100, duration: reduce ? 0 : 0.45, ease: "power3.in" }, 0)
+      .to(veil.current, { opacity: 0, duration: reduce ? 0 : 0.4, ease: "power1.in" }, reduce ? 0 : 0.05);
   }, []);
 
   useEffect(() => {
