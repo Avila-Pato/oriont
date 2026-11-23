@@ -3,50 +3,23 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
 import { useNearViewport } from "@/hooks/useNearViewport";
 import { brands, type BrandStat } from "@/data/services";
 import { BRAND_THEME } from "./parts/themes";
 import { BRAND_LOGOS, IconPeople } from "./parts/visuals";
 
-gsap.registerPlugin(ScrollTrigger, useGSAP);
-
 /* ---------- sección ---------- */
 
 /** "Así llegamos a tus clientes": empresas del grupo (banda a todo el ancho con el color de fondo). */
+// Sin animación de entrada: las tarjetas ya están en su lugar al llegar (antes subían en escalera).
 export default function ServicesSection() {
-  const root = useRef<HTMLElement>(null);
-  // la entrada se prepara recién a una pantalla de distancia (no al cargar)
-  const near = useNearViewport(root);
-
-  useGSAP(
-    () => {
-      if (!near) return;
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from("[data-brand]", {
-          y: 60,
-          autoAlpha: 0,
-          stagger: 0.12,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: { trigger: "[data-brands]", start: "top 75%" },
-        });
-      });
-      return () => mm.revert();
-    },
-    { scope: root, dependencies: [near], revertOnUpdate: true },
-  );
-
   return (
     <section
-      ref={root}
       id="servicios"
       // hoja que sube sobre la sección anterior: va encima, con esquinas redondeadas y sombra hacia arriba
       className="relative bg-background py-24 text-navy "
     >
-      <div data-brands className="container-page">
+      <div className="container-page">
         <div className="flex flex-col items-center text-center">
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-navy p-3 text-cream xl:h-16 xl:w-16 xl:p-3.5">
             <IconPeople />
@@ -210,7 +183,13 @@ function BrandGrid() {
 // un engranaje en cada unión, a medias sobre las dos tarjetas: turquesa, que se lee sobre las tres
 function BrandPanels() {
   const [active, setActive] = useState(1);
-  const go = (i: number) => setActive(i);
+  // las cifras solo cuentan cuando el usuario cambia de tarjeta: la que viene abierta (Oriont) ya
+  // muestra los valores finales (antes contaba al cargar la web, con la sección fuera de pantalla)
+  const [touched, setTouched] = useState(false);
+  const go = (i: number) => {
+    if (i !== active) setTouched(true);
+    setActive(i);
+  };
 
   return (
     <div
@@ -224,9 +203,7 @@ function BrandPanels() {
         const x = `calc(${i} * (var(--u) + ${GAP}px) + ${active < i ? GROW - 1 : 0} * var(--u))`;
         const clip = `calc(${on ? 0 : GROW - 1} * var(--u))`;
         return (
-          // data-brand (entrada con GSAP) va en un contenedor aparte: GSAP convierte el `translate`
-          // de CSS del elemento que anima en un transform fijo, y la tarjeta dejaría de moverse.
-          <div key={b.name} data-brand className="lg:pointer-events-none lg:absolute lg:inset-0">
+          <div key={b.name} className="lg:pointer-events-none lg:absolute lg:inset-0">
           <article
             onMouseEnter={() => go(i)}
             onClick={() => go(i)}
@@ -276,7 +253,7 @@ function BrandPanels() {
                 </span>
               </div>
 
-              {b.stats && <BrandStats stats={b.stats} on={on} muted={t.muted} />}
+              {b.stats && <BrandStats stats={b.stats} on={on && touched} muted={t.muted} />}
 
               <div>
                 <h3 className="font-display text-[20px] font-semibold leading-tight tracking-tight sm:text-[24px] md:text-[32px] xl:text-[36px] lg:short:text-[28px]">{b.tagline}</h3>
