@@ -73,8 +73,8 @@ const SPIN_SPEED = 15;
 const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1310, 1420]; // anillos solo de trazo (los de afuera, muy tenues)
 /** solo estos anillos giran (los demás quedan quietos). Cada uno va en su propia capa rotada por
  *  CSS (compositor, sin repintar): la capa es un cuadrado de 2r y su costo crece con r², por eso
- *  solo los chicos (antes eran 7, hasta r=840: el giro era ~la mitad del CPU de la página) */
-const SPINNING = [250, 330, 500, 670];
+ *  solo los dos más chicos (con 500 y 670 también, la entrada de la sección daba tirones) */
+const SPINNING = [250, 330];
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pt = (r: number, deg: number) => {

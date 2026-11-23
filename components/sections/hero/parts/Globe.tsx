@@ -902,7 +902,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
       ctx.restore();
 
       // ciudades con etiqueta
-      const pulse = (now * 0.0006) % 1;
+      const pulse = (now * 0.0003) % 1; // una onda cada ~3,3 s (antes 1,7 s: se movía demasiado)
       ctx.textBaseline = "middle";
       ctx.textAlign = "right";
       for (const c of CITIES) {
