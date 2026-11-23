@@ -34,6 +34,12 @@ const MID = (TEAM_CARDS.length - 1) / 2;
 
 /** Composición final (llamado + fila de tarjetas + flecha), centrada en el alto visible. */
 const HOLD = 0.5; // pausa inicial (en unidades del timeline) con el círculo completo a la vista
+/** Scroll (en altos de pantalla) que dura la parte atada al scroll: círculo → fila → llamado. */
+const SCRUB_VH = 1.9;
+// Después de abrirse el formulario la sección sigue fija 60vh más de scroll antes de que siga
+// la página: va en el alto de `track` (230vh = SCRUB_VH − 0,2 + 0,6).
+/** Velocidad de la apertura automática (1 = 1 s por unidad del timeline; dura ~1 s en total). */
+const OPEN_SPEED = 1;
 const CTA_TOP = 96; // px libres arriba (menú flotante)
 const BOTTOM_PAD = 14; // px libres abajo
 const GAP_CTA_ROW = 32; // px entre el llamado y la fila
@@ -233,15 +239,17 @@ export default function AboutSection() {
         // Sin `pin` de GSAP: pasar a position:fixed lo cuenta Chrome como un layout shift de
         // toda la sección (CLS ≈ 1). La fija `sticky` dentro de `track`, cuyo alto ya reserva
         // el recorrido; el timeline solo se ata al scroll de ese contenedor.
+        // 2) va atado al scroll (scrub) hasta el llamado con la flecha. 3) la apertura con el
+        // formulario NO: se dispara sola al seguir bajando apenas un poco (ver `open` más abajo).
         const tl = gsap
           .timeline({
-            // pasada la apertura (label "expand" + 1), el fondo empieza a rotar fotos
-            onUpdate: () => setSlidesOn(tl.time() >= tl.labels.expand + 1),
             scrollTrigger: {
               trigger: track.current,
               // arranca antes de que la sección quede fija: al llegar ya se está moviendo
               start: "top 20%",
-              end: "bottom bottom",
+              // scroll que dura la parte 2 (en altos de pantalla). Si se cambia, ajustar el alto
+              // de `track` (230vh)
+              end: () => `+=${window.innerHeight * SCRUB_VH}`,
               scrub: 1, // suavidad respecto a la rueda: más alto = la animación alcanza al scroll con más inercia (más fluido)
               invalidateOnRefresh: true,
             },
@@ -276,9 +284,20 @@ export default function AboutSection() {
             HOLD + 0.65,
           )
           .fromTo("[data-stage-arrow]", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.35, ease: "power3.out" }, HOLD + 1.1)
-          .to({}, { duration: 0.1 }) // pausa corta en el llamado: apenas se lee, el formulario viene enseguida
-          // 3) la imagen del centro toma la pantalla
-          .addLabel("expand")
+          // margen mínimo tras la flecha (~25 px de scroll): con el llamado completo, UN toque de
+          // rueda (~100 px) ya pasa el punto de apertura. Más largo = hacen falta 2 toques.
+          .to({}, { duration: 0.03 });
+
+        // 3) la imagen del centro toma la pantalla y entra el formulario: animación con su propio
+        //    tiempo (no atada al scroll). Se reproduce al pasar el final de la parte 2 y se
+        //    devuelve al volver a subir.
+        const open = gsap
+          .timeline({
+            paused: true,
+            // pasada la apertura (label "expand" + 1), el fondo empieza a rotar fotos
+            onUpdate: () => setSlidesOn(open.time() >= open.labels.expand + 1),
+          })
+          .addLabel("expand", 0)
           .to("[data-stage-cta] > * > *", { autoAlpha: 0, y: -40, duration: 0.35, ease: "power2.in", stagger: 0.03 }, "expand")
           .to("[data-stage-arrow]", { autoAlpha: 0, y: 20, duration: 0.25, ease: "power2.in" }, "expand")
           .set(expand.current, { autoAlpha: 1 }, "expand")
@@ -304,9 +323,23 @@ export default function AboutSection() {
             "[data-expand-content] > *",
             { autoAlpha: 0, y: 50 },
             { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.1 },
-            "expand+=0.25", // cuánto después de empezar a abrirse la foto aparece el formulario
-          )
-          .to({}, { duration: 0.15 }); // pausa con el formulario antes de soltar el pin
+            "expand+=0.15", // cuánto después de empezar a abrirse la foto aparece el formulario
+          );
+        open.timeScale(OPEN_SPEED);
+
+        ScrollTrigger.create({
+          trigger: track.current,
+          // justo donde termina la parte 2 (se recalcula después de ella: se creó antes)
+          start: () => tl.scrollTrigger?.end ?? 0,
+          onEnter: () => {
+            // el scrub (inercia de 1 s) puede venir atrasado: se completa para que no pelee con
+            // la apertura por el llamado y la flecha
+            tl.scrollTrigger?.getTween()?.progress(1);
+            if (reduce) open.progress(1);
+            else open.play();
+          },
+          onLeaveBack: () => (reduce ? open.progress(0) : open.reverse()),
+        });
 
         return () => ScrollTrigger.removeEventListener("refreshInit", layout);
       });
@@ -315,8 +348,9 @@ export default function AboutSection() {
   );
 
   return (
-    // escritorio: alto de la sección + 280vh de recorrido; la sección queda sticky mientras dura
-    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+280vh)]">
+    // escritorio: alto de la sección + recorrido sticky = SCRUB_VH − 0,2 (arranca en "top 20%")
+    // + 0,6 con el formulario abierto → 170vh + 60vh. Si se cambia SCRUB_VH, actualizar el 230vh.
+    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+230vh)]">
     <section
       ref={scope}
       className="relative flex w-full flex-col items-center overflow-hidden px-4 py-24 lg:sticky lg:top-0 lg:block lg:p-0"

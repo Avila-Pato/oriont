@@ -34,11 +34,11 @@ const loadSignalPlugins = () =>
  * al medio del borde izquierdo y, desde ahí, arcos concéntricos de trazo fino que se abren en
  * medio círculo hacia la derecha, cortados en tramos, con conectores radiales y puntos
  * en las puntas; hacia afuera se desvanecen. Los logos van sobre los arcos.
- * - El dibujo aparece con el scroll desde el centro hacia afuera (un círculo de recorte que crece,
- *   scrub) y algunos anillos (SPINNING) giran lento, en sentidos alternos (anillos completos: al
- *   girar no aparecen huecos). El giro se pausa fuera de pantalla.
+ * - El dibujo aparece una vez al llegar, desde el centro hacia afuera (fundido anillo por anillo y
+ *   un leve crecimiento) y algunos anillos (SPINNING) giran lento, en sentidos alternos (anillos
+ *   completos: al girar no aparecen huecos). El giro se pausa fuera de pantalla.
  * Rendimiento: cada anillo son 3 trazos (tramos, conectores, puntos) en vez de ~40 elementos, y la
- * entrada anima un solo valor (el radio del recorte) en vez de cientos de trazos por frame. Los
+ * entrada solo anima transform/opacity de capas (no repinta trazos ni recorta con clip-path). Los
  * anillos que giran van en capas propias rotadas por CSS: el giro no repinta nada en el hilo principal.
  * - Al pasar el cursor por un logo, una señal celeste viaja en línea recta hasta el primer arco del
  *   abanico, a un punto distinto cada vez (con el scroll los logos solo toman su color: SponsorScrollColor).
@@ -68,11 +68,12 @@ const HUBS = (
 // arcos circulares: los grandes se recortan arriba y abajo y llegan hasta el borde derecho
 const RINGS = [330, 500, 670, 840, 1010, 1180, 1350]; // anillos con logos
 /** velocidad del giro en el borde de cada anillo (unidades del dibujo por segundo) */
-const SPIN_SPEED = 10;
+const SPIN_SPEED = 15;
 const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1310, 1420]; // anillos solo de trazo (los de afuera, muy tenues)
 /** solo estos anillos giran (los demás quedan quietos). Cada uno va en su propia capa rotada por
- *  CSS (compositor, sin repintar): la capa es un cuadrado de 2r, por eso solo anillos medianos */
-const SPINNING = [250, 330, 500, 585, 670, 755, 840];
+ *  CSS (compositor, sin repintar): la capa es un cuadrado de 2r y su costo crece con r², por eso
+ *  solo los chicos (antes eran 7, hasta r=840: el giro era ~la mitad del CPU de la página) */
+const SPINNING = [250, 330, 500, 670];
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pt = (r: number, deg: number) => {
@@ -208,37 +209,64 @@ export default function SponsorCircuit() {
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const q = gsap.utils.selector(root);
 
-        // el dibujo aparece UNA vez, desde las 3 marcas hacia afuera: crece un círculo de recorte
-        // (clip-path CSS sobre el contenedor de todo el dibujo, no un <clipPath> dentro de cada
-        // SVG: así las capas que giran se rasterizan una vez y el recorte solo las enmascara).
-        // No va atado al scroll (antes con scrub avanzaba y retrocedía con la rueda, repintando el
-        // recorte en cada paso) y al terminar se quita el clip-path: no queda máscara que repintar.
+        // El dibujo aparece UNA vez, desde las 3 marcas hacia afuera:
+        // - todo el dibujo crece apenas desde el centro de los arcos
+        // - los anillos que giran aparecen con fundido, del más chico al más grande
+        // - los anillos quietos (un solo SVG) aparecen al final
+        // Rendimiento:
+        // - Web Animations (el.animate), no GSAP: solo transform/opacity, así el navegador la corre
+        //   entera en el compositor y el hilo principal no trabaja en cada cuadro.
+        // - Ocultos solo con opacity 0 (no visibility:hidden como autoAlpha): así las capas se
+        //   rasterizan antes, con la sección aún lejos, y no todas de golpe al empezar la entrada.
+        // - El giro espera a que termine la entrada (menos capas cambiando a la vez).
+        // Antes crecía un clip-path circular: recortaba todo el dibujo en cada cuadro (lag).
+        const el = root.current!;
         const art = q<HTMLElement>("[data-art]")[0];
-        const circle = (r: number) => {
-          const k = art.clientWidth / W;
-          return `circle(${r * k}px at ${C.x * k}px ${C.y * k}px)`;
+        const spins = q<HTMLElement>("[data-ring-spin]"); // en el DOM van de menor a mayor radio
+        const still = q<SVGSVGElement>("[data-art-still]")[0];
+        const faded = [...spins, still];
+        faded.forEach((f) => (f.style.opacity = "0"));
+
+        let entering = false;
+        let onScreen = false;
+        const spinIfVisible = () => (onScreen && !entering ? (el.dataset.spin = "on") : delete el.dataset.spin);
+        const anims: Animation[] = [];
+        const reveal = () => {
+          entering = true;
+          spinIfVisible();
+          const ease = "cubic-bezier(0.22, 1, 0.36, 1)"; // ~power3.out
+          anims.push(
+            art.animate([{ transform: "scale(0.94)" }, { transform: "scale(1)" }], {
+              duration: 1600,
+              easing: ease,
+            }),
+            ...spins.map((s, i) => s.animate({ opacity: [0, 1] }, { duration: 600, delay: i * 120, easing: "ease-out", fill: "backwards" })),
+            still.animate({ opacity: [0, 1] }, { duration: 900, delay: 500, easing: "ease-out", fill: "backwards" }),
+          );
+          // los valores finales quedan en el estilo y se sueltan las animaciones (nada que componer después)
+          faded.forEach((f) => (f.style.opacity = ""));
+          void Promise.all(anims.map((a) => a.finished))
+            .then(() => {
+              anims.forEach((a) => a.cancel());
+              entering = false;
+              spinIfVisible();
+            })
+            .catch(() => {}); // cancelada al desmontar
         };
-        gsap.fromTo(
-          art,
-          { clipPath: () => circle(HUB_ARC) },
-          {
-            clipPath: () => circle(R_MAX),
-            duration: 1.8,
-            ease: "power2.inOut",
-            scrollTrigger: { trigger: root.current, start: "top 75%", once: true },
-            onComplete: () => gsap.set(art, { clearProps: "clipPath" }),
-          },
-        );
+        art.style.transformOrigin = `${(C.x / W) * 100}% 50%`;
+        ScrollTrigger.create({ trigger: el, start: "top 75%", once: true, onEnter: reveal });
 
         // giro: solo algunos anillos (SPINNING), por CSS en el compositor (globals.css,
-        // circuit-spin). Acá solo se pausa fuera de pantalla.
-        const el = root.current!;
+        // circuit-spin). Acá solo se pausa fuera de pantalla y durante la entrada.
         const pause = () => delete el.dataset.spin;
         ScrollTrigger.create({
           trigger: el,
           start: "top bottom",
           end: "bottom top",
-          onToggle: (self) => (self.isActive ? (el.dataset.spin = "on") : pause()),
+          onToggle: (self) => {
+            onScreen = self.isActive;
+            spinIfVisible();
+          },
         });
 
         // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta el primer
@@ -274,6 +302,10 @@ export default function SponsorCircuit() {
         });
         return () => {
           pause();
+          // lo que no maneja GSAP (Web Animations y estilos puestos a mano) se deshace aquí
+          anims.forEach((a) => a.cancel());
+          faded.forEach((f) => (f.style.opacity = ""));
+          art.style.transformOrigin = "";
           cells.forEach((c, i) => c.removeEventListener("pointerenter", enter[i]));
         };
       });
@@ -292,7 +324,7 @@ export default function SponsorCircuit() {
 
   return (
     <div ref={root} className="relative hidden aspect-[1500/600] w-full [--logo-h:26px] lg:block xl:[--logo-h:32px]">
-      {/* todo el dibujo: lo recorta el círculo de la entrada (clip-path animado con el scroll) */}
+      {/* todo el dibujo (la entrada lo hace crecer apenas y aparecer anillo por anillo) */}
       <div data-art aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* anillos que giran: cada uno en su capa (cuadrado de 2r centrado en C) rotada por CSS.
             Usan el degradado del SVG de abajo (centrado en C: girar no lo cambia) */}
@@ -322,7 +354,7 @@ export default function SponsorCircuit() {
               </svg>
             </div>
           ))}
-      <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-hidden">
+      <svg data-art-still viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-hidden">
         <defs>
           {/* se desvanece hacia afuera */}
           <radialGradient

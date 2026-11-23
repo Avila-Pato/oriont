@@ -2,7 +2,10 @@ import { useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { SKIP_INTRO_EVENT, getLenis, setWheelLimit } from "@/components/layout/SmoothScroll";
+import { SKIP_INTRO_EVENT, getLenis } from "@/components/layout/SmoothScroll";
+
+/** lo que tarda en subir cada carta (s): rápido, como repartir cartas */
+const STEP_DUR = 0.25;
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -136,11 +139,10 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
      
         let target = 0; // paso que pide el scroll: cuántas cartas (además de la 01) deben estar arriba
         let at = 0; // paso hacia el que va la animación
-        let reached = 0; // paso en que la animación ya terminó (carta quieta)
         let animating = false;
-        let stepDur = 0.4; // lo que tarda en subir cada carta
         /** De a una carta: con un scroll fuerte el paso pedido salta varios tramos, pero las cartas
-         *  igual suben una por una, cada una con su animación completa, hasta alcanzarlo. */
+         *  igual suben una por una (rápido, encadenadas), cada una con su animación completa, hasta
+         *  alcanzarlo. El scroll nunca se frena: las cartas lo siguen. */
         const advance = () => {
           if (at === target) {
             animating = false;
@@ -151,30 +153,25 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           // inOut: arranca y frena suave, se desliza en vez de saltar
           gsap.to(tl, {
             time: at,
-            duration: stepDur,
+            duration: STEP_DUR,
             ease: "power2.inOut",
             overwrite: true,
-            onComplete: () => {
-              reached = at;
-              advance();
-            },
+            onComplete: advance,
           });
         };
 
         /** Termina para siempre: se completa el mazo, se suelta el trigger y se quita el
          *  espaciador, para que al subir la sección pase normal (sin quedarse fija).
-         *  `gentle` (al salir con el scroll): las cartas que faltan siguen subiendo de a una, algo
-         *  más rápido, en vez de llegar todas juntas de golpe.
+         *  `gentle` (al salir con el scroll): las cartas que faltan siguen subiendo de a una, al
+         *  mismo ritmo, en vez de llegar todas juntas de golpe.
          *  Sin `gentle` (índice o menú): al tiro, porque después viene otra animación o un salto. */
         const ref: { st?: ScrollTrigger } = {};
         const finish = (gentle = false) => {
           if (played.current) return;
           played.current = true;
-          setWheelLimit(null);
           ref.st?.kill();
           if (gentle) {
             target = cards.length - 1;
-            stepDur = 0.55;
             if (!animating) advance();
           } else {
             gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true });
@@ -217,27 +214,14 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           },
         });
 
-        // Freno de la rueda mientras se arma el mazo: el scroll no puede adelantarse más de un tramo
-        // a la última carta que terminó de subir. Así un giro fuerte trae solo la carta siguiente
-        // (y no saca de la sección): para la otra hay que volver a girar cuando esa ya llegó.
-        // Al completar el mazo no hay tope y se sale normal. Solo hacia abajo y solo con Lenis.
-        if (!played.current) {
-          setWheelLimit(() => {
-            const st = ref.st;
-            if (played.current || !st) return null;
-            const allowed = reached + 1; // tramo de la carta siguiente
-            if (allowed > cards.length - 1) return null; // mazo completo: libre
-            // fin del tramo `allowed` (un px antes de entrar al siguiente)
-            return st.start + ((st.end - st.start) * (allowed + 1)) / cards.length - 1;
-          });
-        }
+        // Sin freno de la rueda (antes setWheelLimit detenía el scroll hasta que llegara cada
+        // carta): el scroll sigue fluido y las cartas se reparten detrás, rápido y de a una.
 
         // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
         window.addEventListener(SKIP_INTRO_EVENT, skip);
         // el espaciador cambió el alto de la página: los demás triggers (ya creados) deben medir de nuevo
         ScrollTrigger.refresh();
         return () => {
-          setWheelLimit(null);
           endRef.current = null;
           window.removeEventListener(SKIP_INTRO_EVENT, skip);
           if (!played.current) {
