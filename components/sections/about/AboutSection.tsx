@@ -298,8 +298,12 @@ export default function AboutSection() {
             onUpdate: () => setSlidesOn(open.time() >= open.labels.expand + 1),
           })
           .addLabel("expand", 0)
-          .to("[data-stage-cta] > * > *", { autoAlpha: 0, y: -40, duration: 0.35, ease: "power2.in", stagger: 0.03 }, "expand")
-          .to("[data-stage-arrow]", { autoAlpha: 0, y: 20, duration: 0.25, ease: "power2.in" }, "expand")
+          // Ocultan los CONTENEDORES del llamado y de la flecha, no los mismos elementos que anima
+          // `tl`: si ambos timelines tocaban los mismos, al subir rápido el scrub dejaba el llamado
+          // oculto y luego open.reverse() (más lento) lo volvía a mostrar encima de "Nuestro Equipo".
+          .to("[data-stage-cta]", { autoAlpha: 0, y: -40, duration: 0.35, ease: "power2.in" }, "expand")
+          // solo opacidad: su `y` lo pone layout
+          .to(arrowBox.current, { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, "expand")
           .set(expand.current, { autoAlpha: 1 }, "expand")
           // la capa la reemplaza: el marco se desvanece mientras la foto ya empieza a crecer
           .to(outers[EXPAND], { autoAlpha: 0, duration: 0.2, ease: "power1.out" }, "expand")
