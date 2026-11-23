@@ -223,9 +223,11 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         });
 
         // Tope SOLO al final del recorrido: entre cartas el scroll sigue fluido, pero la rueda no
-        // pasa del final hasta que la última carta terminó de subir (si no, con 80 px por carta la
-        // sección se iba mientras las cartas seguían llegando). Llegada la 05, el giro siguiente sigue.
-        const deckDone = () => played.current || (at === cards.length - 1 && !animating);
+        // pasa del final hasta que la última carta (05) EMPIEZA a subir (si no, con 80 px por carta
+        // la sección se iba con varias cartas en camino). Se suelta al arrancar la 05 y no al
+        // terminar: así un giro dado mientras sube no se pierde (pedían 1 giro = 1 paso).
+        // `at` cambia al empezar cada carta (ver advance).
+        const deckDone = () => played.current || at === cards.length - 1;
         setWheelLimit(() => (deckDone() ? null : (ref.st?.end ?? null)));
 
         // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
