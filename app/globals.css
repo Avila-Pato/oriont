@@ -91,8 +91,13 @@
   animation: circuit-spin var(--spin-dur) linear infinite paused;
   will-change: transform;
 }
-[data-spin="on"] [data-ring-spin] {
+[data-spin="on"] [data-ring-spin],
+[data-spin="on"] [data-live-pulse] {
   animation-play-state: running;
+}
+/* punto "en vivo" de sponsors: late solo junto con el giro (ver SponsorCircuit, AWAKE_MS) */
+[data-live-pulse] {
+  animation-play-state: paused;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-ring-spin] {

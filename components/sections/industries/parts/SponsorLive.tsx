@@ -124,7 +124,7 @@ export default function SponsorLive() {
   return (
     <div ref={root} aria-hidden className="border-l border-navy/10 pl-8 xl:pl-10">
       <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-navy/70">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+        <span data-live-pulse className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
         Conectados con Oriont
       </p>
       {/* una sola línea de alto fijo (un nombre largo no salta a dos líneas); la máscara recorta

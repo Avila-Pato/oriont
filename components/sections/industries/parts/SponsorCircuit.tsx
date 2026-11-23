@@ -75,6 +75,8 @@ const GHOSTS = [250, 415, 585, 755, 925, 1095, 1265, 1310, 1420]; // anillos sol
  *  CSS (compositor, sin repintar): la capa es un cuadrado de 2r y su costo crece con r², por eso
  *  solo los dos más chicos (con 500 y 670 también, la entrada de la sección daba tirones) */
 const SPINNING = [250, 330];
+/** cuánto siguen girando los anillos (y latiendo el punto) sin scroll ni mouse en la sección (ms) */
+const AWAKE_MS = 7000;
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pt = (r: number, deg: number) => {
@@ -230,7 +232,28 @@ export default function SponsorCircuit() {
 
         let entering = false;
         let onScreen = false;
-        const spinIfVisible = () => (onScreen && !entering ? (el.dataset.spin = "on") : delete el.dataset.spin);
+        // Giro (y el punto que late en SponsorLive) solo un rato: al entrar y mientras haya scroll o
+        // mouse en la sección; con la página quieta AWAKE_MS se detienen. Cualquier animación
+        // continua obliga al navegador a recomponer TODA la pantalla 60 veces por segundo (aunque
+        // sea un punto de 6 px): eso era ~todo el gasto de GPU estando en Industrias.
+        let awake = false;
+        let sleepTimer = 0;
+        // data-spin va en la <section>: así alcanza también al punto que late (fuera de este bloque)
+        const host = el.closest("section") ?? el;
+        const spinIfVisible = () => (onScreen && !entering && awake ? (host.dataset.spin = "on") : delete host.dataset.spin);
+        const wake = () => {
+          clearTimeout(sleepTimer);
+          sleepTimer = window.setTimeout(() => {
+            awake = false;
+            spinIfVisible();
+          }, AWAKE_MS);
+          if (!awake) {
+            awake = true;
+            spinIfVisible();
+          }
+        };
+        const onActivity = () => onScreen && wake();
+        host.addEventListener("pointermove", onActivity, { passive: true });
         const anims: Animation[] = [];
         const reveal = () => {
           entering = true;
@@ -259,7 +282,11 @@ export default function SponsorCircuit() {
 
         // giro: solo algunos anillos (SPINNING), por CSS en el compositor (globals.css,
         // circuit-spin). Acá solo se pausa fuera de pantalla y durante la entrada.
-        const pause = () => delete el.dataset.spin;
+        const pause = () => {
+          clearTimeout(sleepTimer);
+          host.removeEventListener("pointermove", onActivity);
+          delete host.dataset.spin;
+        };
         // Solo con una parte real del abanico a la vista (entre el 80 % y el 20 % de la pantalla):
         // con "top bottom / bottom top" seguía girando con apenas 60 px asomando arriba (en Nosotros),
         // y las capas grandes que giran eran ~todo el uso de GPU de esa sección.
@@ -269,8 +296,11 @@ export default function SponsorCircuit() {
           end: "bottom 20%",
           onToggle: (self) => {
             onScreen = self.isActive;
+            if (onScreen) wake();
             spinIfVisible();
           },
+          // hacer scroll dentro de la sección la mantiene despierta
+          onUpdate: onActivity,
         });
 
         // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta el primer
