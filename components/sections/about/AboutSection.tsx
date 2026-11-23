@@ -73,10 +73,13 @@ export default function AboutSection() {
   // Fotos decodificadas por adelantado, en un momento libre, con la sección a una pantalla: si no,
   // la primera vez se decodificaban al aparecer (las tarjetas al salir del centro y la foto grande
   // al abrirse) y ese cuadro tardaba 60-80 ms. decode() espera a que la foto termine de bajar.
+  // loading="eager": las fotos vienen con carga diferida (lazy) y decode() solo no las obliga a
+  // descargarse; así llegan y se decodifican antes de que la sección esté en pantalla.
   useEffect(() => {
     if (!near) return;
     const run = () =>
       scope.current?.querySelectorAll("img").forEach((img) => {
+        img.loading = "eager";
         img.decode().catch(() => {});
       });
     const id = window.requestIdleCallback?.(run, { timeout: 1500 }) ?? window.setTimeout(run, 200);

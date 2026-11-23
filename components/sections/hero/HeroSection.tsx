@@ -21,7 +21,7 @@ export default function HeroSection() {
       <div className="relative z-20 mt-10 w-full max-w-[520px] lg:absolute lg:left-[max(2.5%,calc(50%-800px))] lg:top-1/2 lg:mt-0 lg:w-auto lg:max-w-none lg:-translate-y-1/2">
         <div className="rounded-3xl border border-white bg-white/75 p-6 ring-1
          ring-navy/[0.06] sm:p-7 lg:w-(--cw)
-        xl:p-7 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.35)] backdrop-blur-xl lg:p-8">
+        xl:p-7 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.35)] backdrop-blur-md lg:p-8">
 
           <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink xl:text-[12px]">
             <span className="h-px w-6 bg-accent xl:w-8" />

@@ -37,7 +37,7 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
     if (touch || reduce) return;
 
     const lenis = new Lenis({
-      duration: 2.2,
+      duration: 1.2, // antes 2,2: el scroll seguía deslizándose ~2 s tras cada giro (se sentía pesado)
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       // corre antes de que Lenis use el delta: aquí se recorta para respetar `wheelLimit`

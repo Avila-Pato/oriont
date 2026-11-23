@@ -127,9 +127,10 @@ export default function Navbar() {
         <a
           href="#"
           aria-label="Oriont, inicio"
-          // cápsula blanca casi opaca con borde y sombra fijos: el logo se despega del fondo claro
-          // del hero desde el primer frame (antes era blanco al 75 % sin borde y se perdía)
-          className={`pointer-events-auto relative justify-self-start flex h-14 items-center rounded-full bg-white/95 px-4 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-navy/10 backdrop-blur-2xl transition-opacity duration-500 ${
+          // cápsula blanca con borde y sombra fijos: el logo se despega del fondo claro del hero desde
+          // el primer frame. Blanco sólido, sin backdrop-blur: al 95 % el blur casi no se veía y, como
+          // el menú es fijo, se recalculaba en cada cuadro de scroll de toda la página (GPU)
+          className={`pointer-events-auto relative justify-self-start flex h-14 items-center rounded-full bg-white px-4 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-navy/10 transition-opacity duration-500 ${
             tight ? "lg:pointer-events-none lg:opacity-0" : ""
           }`}
         >
@@ -198,7 +199,7 @@ export default function Navbar() {
             }}
             // misma cápsula blanca que el logo, arriba y al bajar (antes crema que cambiaba al
             // hacer scroll). El borde del hover va en ::after y solo anima opacity
-            className="group relative hidden h-12 items-center gap-3 rounded-full bg-white/95 pl-6 pr-2 text-[13px] font-medium text-navy shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-navy/10 backdrop-blur-2xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-navy after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
+            className="group relative hidden h-12 items-center gap-3 rounded-full bg-white pl-6 pr-2 text-[13px] font-medium text-navy shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-navy/10 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-navy after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
             style={{ transform: `translateX(${tight ? shift.cta : 0}px)` }}
           >
             {NAV_CTA.label}
@@ -242,7 +243,7 @@ export default function Navbar() {
       {/* menú móvil: siempre maquetado (está en el header fijo, no empuja la página); se abre con
           clip-path + opacity en vez de animar max-height */}
       <div
-        className={`mx-4 mt-2 rounded-3xl border border-navy/10 bg-white/95 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] backdrop-blur-xl transition-[clip-path,opacity,visibility] duration-300 md:mx-8 lg:hidden ${
+        className={`mx-4 mt-2 rounded-3xl border border-navy/10 bg-white shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] transition-[clip-path,opacity,visibility] duration-300 md:mx-8 lg:hidden ${
           open
             ? "pointer-events-auto visible opacity-100 [clip-path:inset(0_0_0_0_round_24px)]"
             : "pointer-events-none invisible opacity-0 [clip-path:inset(0_0_100%_0_round_24px)]"
