@@ -27,12 +27,15 @@ export default function HeroGallery() {
     let raf = 0;
     let visible = false;
     const onMove = (e: MouseEvent) => {
+      // con el hero fuera de pantalla el cursor se ignora del todo: si no, al volver las fotos se
+      // iban hacia donde quedó el mouse en otra sección (parecía que lo seguían desde allá)
+      if (!visible) return;
       // dirección del cursor respecto al centro de la pantalla (-1..1)
       target = {
         x: (e.clientX / window.innerWidth - 0.5) * 2,
         y: (e.clientY / window.innerHeight - 0.5) * 2,
       };
-      if (visible) start();
+      start();
     };
     const onLeave = () => {
       target = null;
@@ -96,7 +99,19 @@ export default function HeroGallery() {
     const ro = new ResizeObserver(measure);
     ro.observe(wrap);
     // ratio mínimo: tocar el borde de la pantalla (página justo bajo el hero) no cuenta como visible
-    const unwatch = watchVisible(wrap, (v) => ((visible = v) ? start() : stop()), 0.01);
+    const unwatch = watchVisible(
+      wrap,
+      (v) => {
+        visible = v;
+        if (v) return start();
+        // al salir: se olvida el cursor y las fotos quedan en el centro para cuando se vuelva
+        stop();
+        target = null;
+        gx = gy = 0;
+        refs.current.forEach((el) => el && (el.style.transform = "translate3d(0px, 0px, 0px)"));
+      },
+      0.01,
+    );
 
     window.addEventListener("mousemove", onMove, { passive: true });
     document.documentElement.addEventListener("mouseleave", onLeave);
