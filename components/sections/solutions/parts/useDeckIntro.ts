@@ -3,9 +3,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { SKIP_INTRO_EVENT, getLenis } from "@/components/layout/SmoothScroll";
+import { STEP_DUR } from "./constants";
 
-/** lo que tarda en subir cada carta (s): rápido, como repartir cartas */
-const STEP_DUR = 0.25;
+
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 

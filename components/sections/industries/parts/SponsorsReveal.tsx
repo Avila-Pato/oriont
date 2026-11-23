@@ -48,6 +48,10 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
           { motion: "(prefers-reduced-motion: no-preference)", desktop: "(min-width: 1024px)" },
           (ctx) => {
             if (!ctx.conditions?.motion) return;
+            // SplitText (aria "auto") pone aria-label con el texto completo en el elemento y oculta
+            // las palabras: por eso [data-reveal-title] tiene que ser el <h2> y no un <span>
+            // (ARIA prohíbe aria-label en elementos sin rol: falla de Lighthouse). Con "hidden" el
+            // encabezado quedaba vacío para el lector de pantalla.
             const split = SplitText.create("[data-reveal-title]", { type: "words", mask: "words" });
 
             const tl = gsap.timeline({

@@ -46,8 +46,8 @@
   --color-navy: #21255c; /* azul marino: texto y fondos oscuros */
   --color-accent: #248caa; /* celeste de la marca: títulos grandes, líneas, puntos, íconos */
   /* celeste para TEXTO CHICO (< 18px): el de la marca no llega al contraste mínimo (4.5) sobre
-     blanco; este sí (4.7–4.9). Para texto informativo en marino transparente, mínimo `/70` */
-  --color-accent-ink: #1f7a93;
+     blanco; este sí (≥ 4.6, también sobre el celeste claro `ice`). Para texto informativo en marino transparente, mínimo `/70` */
+  --color-accent-ink: #1d7690;
   --color-ice: #dcebf3; /* celeste muy claro: fondos */
   --color-cream: #f5f0e6; /* crema: texto sobre marino */
   --color-danger: #c2410c; /* errores del formulario */

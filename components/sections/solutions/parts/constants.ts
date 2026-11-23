@@ -7,7 +7,8 @@ export const DEPTH_DIM = 0.07; // cuánto se oscurece cada tarjeta de atrás
 export const CARD_H = 455; // alto de la tarjeta (px)
 export const SHUFFLE_OUT = 380; // ms del viaje de salida al barajar
 export const LAST = steps.length - 1;
-
+/** lo que tarda en subir cada carta (s): rápido, como repartir cartas */
+export const STEP_DUR = 0.25;
 /** 0 → "01" */
 export const pad = (i: number) => String(i + 1).padStart(2, "0");
 

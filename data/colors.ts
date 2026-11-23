@@ -10,7 +10,7 @@ export const COLORS = {
   /** celeste de la marca: títulos grandes, líneas, puntos, íconos */
   accent: "#248caa",
   /** celeste para texto chico (contraste ≥ 4.5 sobre blanco) */
-  accentInk: "#1f7a93",
+  accentInk: "#1d7690",
   /** celeste muy claro: fondos */
   ice: "#dcebf3",
   /** crema */

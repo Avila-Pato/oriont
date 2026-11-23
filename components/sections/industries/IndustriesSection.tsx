@@ -18,11 +18,13 @@ export default function IndustriesSection() {
             <span data-reveal-line className="h-px w-6 bg-accent xl:w-8" />
             <span>Sponsors y aliados</span>
           </p>
-          {/* h2: el h1 de la página es el del hero */}
-          <h2 className="mt-5 font-display text-[36px] font-semibold leading-[1.05] tracking-tight text-navy md:text-[44px] xl:text-[52px]">
-            <span data-reveal-title>
-              Confían en <span className="text-accent">nosotros.</span>
-            </span>
+          {/* h2: el h1 de la página es el del hero. data-reveal-title va en el h2 (no en un span):
+              SplitText le pone aria-label, que solo es válido en elementos con rol */}
+          <h2
+            data-reveal-title
+            className="mt-5 font-display text-[36px] font-semibold leading-[1.05] tracking-tight text-navy md:text-[44px] xl:text-[52px]"
+          >
+            Confían en <span className="text-accent">nosotros.</span>
           </h2>
           <p data-reveal-text className="mt-5 max-w-[420px] text-[15px] leading-relaxed
            text-navy/70 xl:max-w-[600px] xl:text-[17px]">
