@@ -18,7 +18,6 @@ export default function HeroGallery() {
     // la profundidad solo cambia cuánto avanza cada una.
     const factor = items.map((it) => 0.7 + (it.depth / 30) * 0.6);
     const MAX = 70; // px máximos del grupo hacia el cursor
-    const DRIFT = 12; // deriva lenta compartida cuando no hay cursor
     const EASE = 0.02; // lento y suave
     const EDGE = 8;
 
@@ -26,23 +25,33 @@ export default function HeroGallery() {
     let gy = 0;
     let target: { x: number; y: number } | null = null;
     let raf = 0;
+    let visible = false;
     const onMove = (e: MouseEvent) => {
       // dirección del cursor respecto al centro de la pantalla (-1..1)
       target = {
         x: (e.clientX / window.innerWidth - 0.5) * 2,
         y: (e.clientY / window.innerHeight - 0.5) * 2,
       };
+      if (visible) start();
     };
     const onLeave = () => {
       target = null;
+      if (visible) start();
     };
 
-    const tick = (now: number) => {
-      // destino común: hacia el cursor, o una deriva circular muy lenta
-      const tx = target ? target.x * MAX : Math.sin((now / 30000) * Math.PI * 2) * DRIFT;
-      const ty = target ? target.y * MAX : Math.cos((now / 30000) * Math.PI * 2) * DRIFT * 0.6;
+    // Sin cursor las fotos vuelven al centro y quedan QUIETAS: el loop solo corre mientras se están
+    // moviendo. Antes había una deriva lenta permanente: 6 fotos con sombra (y el panel con blur de
+    // encima) se recomponían 60 veces por segundo para siempre, ~la mitad de la GPU del hero.
+    const tick = () => {
+      const tx = target ? target.x * MAX : 0;
+      const ty = target ? target.y * MAX : 0;
       gx += (tx - gx) * EASE;
       gy += (ty - gy) * EASE;
+      const settled = Math.abs(tx - gx) < 0.05 && Math.abs(ty - gy) < 0.05;
+      if (settled) {
+        gx = tx;
+        gy = ty;
+      }
 
       // límites precalculados: sin lecturas de layout dentro del loop
       refs.current.forEach((el, i) => {
@@ -52,7 +61,7 @@ export default function HeroGallery() {
         const y = Math.max(b.minY, Math.min(b.maxY, gy * factor[i]));
         el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
       });
-      raf = requestAnimationFrame(tick);
+      raf = settled ? 0 : requestAnimationFrame(tick);
     };
 
     // cuánto puede moverse cada foto sin salir de la vista (se mide al cambiar el tamaño, no por frame)
@@ -86,7 +95,8 @@ export default function HeroGallery() {
     const wrap = wrapRef.current!;
     const ro = new ResizeObserver(measure);
     ro.observe(wrap);
-    const unwatch = watchVisible(wrap, (v) => (v ? start() : stop()));
+    // ratio mínimo: tocar el borde de la pantalla (página justo bajo el hero) no cuenta como visible
+    const unwatch = watchVisible(wrap, (v) => ((visible = v) ? start() : stop()), 0.01);
 
     window.addEventListener("mousemove", onMove, { passive: true });
     document.documentElement.addEventListener("mouseleave", onLeave);
