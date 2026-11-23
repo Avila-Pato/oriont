@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 /** cada cuánto se enciende un logo nuevo mientras se hace scroll (ms) */
 const EVERY = 220;
 /** cada cuánto se enciende uno con la pantalla quieta (ms): más tranquilo que con scroll */
-const IDLE_EVERY = 1300;
+const IDLE_EVERY = 3000; // antes 1300: el nombre de SponsorLive quedaba animándose casi sin pausa
 /** cuánto queda encendido cada logo (ms) */
 const HOLD = 1100;
 

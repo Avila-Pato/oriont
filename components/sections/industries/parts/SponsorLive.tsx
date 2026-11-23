@@ -9,7 +9,7 @@ import { SPONSORS } from "@/data/sponsors";
 gsap.registerPlugin(useGSAP);
 
 /** mínimo entre un cambio de nombre y el siguiente (ms): con scroll se encienden logos muy seguido */
-const MIN_GAP = 1100;
+const MIN_GAP = 2500;
 
 /**
  * Junto al título: "Conectados con Oriont" y el nombre de la marca que está encendida en el muro
