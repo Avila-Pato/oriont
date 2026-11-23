@@ -10,7 +10,7 @@ export const LAST = steps.length - 1;
 /** lo que tarda en subir cada carta (s) con un giro de rueda: fluido (con 0,05-0,08 saltaba) */
 export const STEP_DUR = 0.5;
 /** si el scroll pidió varias cartas de una vez, las intermedias suben más rápido (s) */
-export const STEP_DUR_FAST = 0.02;
+export const STEP_DUR_FAST = 0.22;
 /** 0 → "01" */
 export const pad = (i: number) => String(i + 1).padStart(2, "0");
 

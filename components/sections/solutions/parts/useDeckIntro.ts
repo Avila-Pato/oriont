@@ -140,12 +140,20 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         let target = 0; // paso que pide el scroll: cuántas cartas (además de la 01) deben estar arriba
         let at = 0; // paso hacia el que va la animación
         let animating = false;
+        // un giro hacia abajo que llegó al tope mientras la 05 subía: se aplica al aterrizar
+        let pendingLeave = false;
         /** De a una carta: con un scroll fuerte el paso pedido salta varios tramos, pero las cartas
          *  igual suben una por una (rápido, encadenadas), cada una con su animación completa, hasta
          *  alcanzarlo. El scroll nunca se frena: las cartas lo siguen. */
         const advance = () => {
           if (at === target) {
             animating = false;
+            // aterrizó la 05 con un giro guardado: la página sigue sola (sin pedir otro giro)
+            if (pendingLeave && at === cards.length - 1) {
+              pendingLeave = false;
+              const lenis = getLenis();
+              lenis?.scrollTo(lenis.targetScroll + 100);
+            }
             return;
           }
           animating = true;
@@ -222,13 +230,19 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           },
         });
 
-        // Tope SOLO al final del recorrido: entre cartas el scroll sigue fluido, pero la rueda no
-        // pasa del final hasta que la última carta (05) EMPIEZA a subir (si no, con 80 px por carta
-        // la sección se iba con varias cartas en camino). Se suelta al arrancar la 05 y no al
-        // terminar: así un giro dado mientras sube no se pierde (pedían 1 giro = 1 paso).
-        // `at` cambia al empezar cada carta (ver advance).
-        const deckDone = () => played.current || at === cards.length - 1;
+        // Tope SOLO al final del recorrido: entre cartas el scroll sigue fluido, pero la página no
+        // se va hasta que la última carta (05) terminó de subir (si no, con 80 px por carta la
+        // sección se iba con cartas aún en camino). Un giro dado contra el tope no se pierde: queda
+        // guardado (pendingLeave) y se aplica solo cuando la 05 aterriza → 1 giro = 1 paso.
+        const deckDone = () => played.current || (at === cards.length - 1 && !animating);
         setWheelLimit(() => (deckDone() ? null : (ref.st?.end ?? null)));
+        // captura: corre antes que el manejador de Lenis, con el destino del giro anterior
+        const onWheel = (e: WheelEvent) => {
+          const lenis = getLenis();
+          const end = ref.st?.end;
+          if (e.deltaY > 0 && lenis && end != null && !deckDone() && lenis.targetScroll >= end - 1) pendingLeave = true;
+        };
+        window.addEventListener("wheel", onWheel, { capture: true, passive: true });
 
         // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
         window.addEventListener(SKIP_INTRO_EVENT, skip);
@@ -237,6 +251,7 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         return () => {
           endRef.current = null;
           setWheelLimit(null);
+          window.removeEventListener("wheel", onWheel, { capture: true });
           window.removeEventListener(SKIP_INTRO_EVENT, skip);
           if (!played.current) {
             setShown(null);
