@@ -124,7 +124,7 @@ export default function ContactDrawer() {
     >
       {/* velo: click afuera cierra */}
       {/* velo: click afuera cierra (la rueda sobre él la bloquea Lenis, detenido) */}
-      <div ref={veil} aria-hidden onClick={close} className="absolute inset-0 bg-[#21255c]/25 opacity-0" />
+      <div ref={veil} aria-hidden onClick={close} className="absolute inset-0 bg-navy/25 opacity-0" />
 
       {/* panel claro, como el resto de la web: fondo de la página, texto azul y acento celeste.
           data-lenis-prevent: aquí la rueda es nativa, para poder hacer scroll si no cabe */}
@@ -132,10 +132,10 @@ export default function ContactDrawer() {
         ref={panel}
         data-lenis-prevent
         className="absolute inset-y-0 right-0 flex w-full max-w-150 flex-col overflow-y-auto overscroll-contain bg-background
-         text-[#21255c] shadow-[-30px_0_80px_-40px_rgba(33,37,92,0.45)]"
+         text-navy shadow-[-30px_0_80px_-40px_rgba(33,37,92,0.45)]"
       >
         <div className="flex items-center justify-between px-6 pt-6 sm:px-10 sm:pt-8">
-          <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-[#248caa]">
+          <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink">
             <span className="h-px w-6 bg-current" />
             {ABOUT_CTA.eyebrow}
           </p>
@@ -143,7 +143,7 @@ export default function ContactDrawer() {
             type="button"
             onClick={close}
             aria-label="Cerrar"
-            className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-[#21255c]/15 transition-colors hover:bg-[#21255c]/5"
+            className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-navy/15 transition-colors hover:bg-navy/5"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="h-4 w-4" aria-hidden>
               <path d="M6 6l12 12M18 6L6 18" />
@@ -153,22 +153,22 @@ export default function ContactDrawer() {
 
         <div ref={content} className="px-6 pb-8 pt-6 opacity-0 sm:px-10 sm:pb-10">
           <h2 className="font-display text-[30px] font-semibold leading-tight tracking-tight sm:text-[38px]">
-            {ABOUT_CTA.title} <span className="text-[#248caa]">{ABOUT_CTA.highlight}</span>
+            {ABOUT_CTA.title} <span className="text-accent">{ABOUT_CTA.highlight}</span>
           </h2>
 
           {/* tarjeta blanca con borde suave (la sombra negra fuerte era para el fondo de foto) */}
-          <ContactForm className="mt-8 border border-[#21255c]/10 shadow-[0_20px_50px_-35px_rgba(33,37,92,0.35)]!" />
+          <ContactForm className="mt-8 border border-navy/10 shadow-[0_20px_50px_-35px_rgba(33,37,92,0.35)]!" />
 
           <ul className="mt-8 space-y-4">
             {ABOUT_CTA.contact.map((c) => (
               <li key={c.label} className="text-[14px]">
-                <span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-[#21255c]/50">{c.label}</span>
+                <span className="block font-mono text-[10px] uppercase tracking-[0.2em] text-navy/70">{c.label}</span>
                 {c.href ? (
-                  <a href={c.href} className="mt-1 inline-block text-[#248caa] underline-offset-4 hover:underline">
+                  <a href={c.href} className="mt-1 inline-block text-accent-ink underline-offset-4 hover:underline">
                     {c.value}
                   </a>
                 ) : (
-                  <span className="mt-1 block text-[#21255c]/80">{c.value}</span>
+                  <span className="mt-1 block text-navy/80">{c.value}</span>
                 )}
               </li>
             ))}

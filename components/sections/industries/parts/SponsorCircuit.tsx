@@ -15,6 +15,7 @@ import logoDental from "@/public/images/Logo_DentalAssist.webp";
 
 import { CELL_ENTRANCE } from "./cellEntrance";
 import SponsorLogo from "./SponsorLogo";
+import { COLORS } from "@/data/colors";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -190,7 +191,7 @@ const DRAWING = (() => {
 const pctX = (x: number) => `${(x / W) * 100}%`;
 const pctY = (y: number) => `${(y / H) * 100}%`;
 const HUB_CLASS =
-  "absolute z-20 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white shadow-[0_12px_30px_-12px_rgba(33,37,92,0.35)] ring-1 ring-[#21255c]/10";
+  "absolute z-20 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white shadow-[0_12px_30px_-12px_rgba(33,37,92,0.35)] ring-1 ring-navy/10";
 
 function HubMark({ k, className }: { k: string; className: string }) {
   if (k === "oriont") return <OriontMark className={className} />;
@@ -318,7 +319,7 @@ export default function SponsorCircuit() {
     <>
       <path d={ring.segs} strokeWidth={ring.ghost ? 0.8 : 1.2} opacity={ring.ghost ? 0.12 : 0.26} vectorEffect="non-scaling-stroke" />
       <path d={ring.ticks} strokeWidth={1.4} opacity={0.28} vectorEffect="non-scaling-stroke" />
-      <path d={ring.dots} fill="#21255c" stroke="none" opacity={0.32} />
+      <path d={ring.dots} fill={COLORS.navy} stroke="none" opacity={0.32} />
     </>
   );
 
@@ -365,8 +366,8 @@ export default function SponsorCircuit() {
             r={R_MAX}
             gradientTransform={`translate(${C.x} ${C.y})`}
           >
-            <stop offset="0.55" stopColor="#21255c" />
-            <stop offset="1" stopColor="#21255c" stopOpacity="0" />
+            <stop offset="0.55" stopColor={COLORS.navy} />
+            <stop offset="1" stopColor={COLORS.navy} stopOpacity="0" />
           </radialGradient>
         </defs>
         {/* anillos quietos (los que giran van en sus capas, arriba) */}
@@ -378,12 +379,12 @@ export default function SponsorCircuit() {
             ))}
         </g>
         {/* señales: ocultas hasta que su logo se enciende */}
-        <g fill="none" stroke="#248caa" strokeWidth={1.6} strokeLinecap="round">
+        <g fill="none" stroke={COLORS.accent} strokeWidth={1.6} strokeLinecap="round">
           {DRAWING.nodes.map((n, i) => (
             <path key={i} data-trace d={n.trace} opacity={0} vectorEffect="non-scaling-stroke" />
           ))}
         </g>
-        <g fill="#248caa">
+        <g fill={COLORS.accent}>
           {DRAWING.nodes.map((_, i) => (
             <circle key={i} data-spark r={4} opacity={0} />
           ))}

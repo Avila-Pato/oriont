@@ -14,18 +14,18 @@ export default function IndustriesSection() {
         <div>
           {/* mismo encabezado que las demás secciones: etiqueta chica con rayita + título azul
               marino con el remate en celeste (antes era un título celeste distinto al resto) */}
-          <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-[#248caa] xl:text-[12px]">
-            <span data-reveal-line className="h-px w-6 bg-[#248caa] xl:w-8" />
+          <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink xl:text-[12px]">
+            <span data-reveal-line className="h-px w-6 bg-accent xl:w-8" />
             <span>Sponsors y aliados</span>
           </p>
           {/* h2: el h1 de la página es el del hero */}
-          <h2 className="mt-5 font-display text-[36px] font-semibold leading-[1.05] tracking-tight text-[#21255c] md:text-[44px] xl:text-[52px]">
+          <h2 className="mt-5 font-display text-[36px] font-semibold leading-[1.05] tracking-tight text-navy md:text-[44px] xl:text-[52px]">
             <span data-reveal-title>
-              Confían en <span className="text-[#248caa]">nosotros.</span>
+              Confían en <span className="text-accent">nosotros.</span>
             </span>
           </h2>
           <p data-reveal-text className="mt-5 max-w-[420px] text-[15px] leading-relaxed
-           text-[#21255c]/70 xl:max-w-[600px] xl:text-[17px]">
+           text-navy/70 xl:max-w-[600px] xl:text-[17px]">
             Trabajamos junto a marcas que confían en nuestra experiencia y
             compromiso. Conoce a nuestros sponsors y aliados estratégicos, que
             forman parte de lo que hacemos.

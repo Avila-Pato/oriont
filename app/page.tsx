@@ -10,7 +10,7 @@ import { jsonLd } from "@/data/structuredData";
 
 export default function Home() {
   return (
-    <main className="relative flex-1 overflow-x-clip bg-background text-[#21255c]">
+    <main className="relative flex-1 overflow-x-clip bg-background text-navy">
       <script
         type="application/ld+json"
         // "<" escapado: evita que un texto cierre la etiqueta script (recomendación de Next)

@@ -8,7 +8,7 @@
 
 :root {
   --background: #F8F9F9;
-  --foreground: #21255c;
+  --foreground: var(--color-navy);
   /* ancho máximo del contenido de todas las secciones */
   --container: 1600px;
 }
@@ -40,6 +40,18 @@
 }
 
 @theme {
+  /* Colores de la marca: se definen SOLO aquí y se usan como clases (`text-navy`, `bg-accent/10`,
+     `border-navy/15`…). En JS (canvas, SVG, correos, imagen OG) se usa data/colors.ts, que debe
+     tener los mismos valores. */
+  --color-navy: #21255c; /* azul marino: texto y fondos oscuros */
+  --color-accent: #248caa; /* celeste de la marca: títulos grandes, líneas, puntos, íconos */
+  /* celeste para TEXTO CHICO (< 18px): el de la marca no llega al contraste mínimo (4.5) sobre
+     blanco; este sí (4.7–4.9). Para texto informativo en marino transparente, mínimo `/70` */
+  --color-accent-ink: #1f7a93;
+  --color-ice: #dcebf3; /* celeste muy claro: fondos */
+  --color-cream: #f5f0e6; /* crema: texto sobre marino */
+  --color-danger: #c2410c; /* errores del formulario */
+
   /* resorte amortiguado (pasa ~16 % y se asienta): clase `ease-spring` */
   --ease-spring: linear(0, 0.08, 0.271, 0.503, 0.729, 0.915, 1.049, 1.129, 1.161, 1.158, 1.132, 1.095, 1.057, 1.024, 0.999, 0.983, 0.975, 0.974, 0.977, 0.982, 0.988, 0.994, 0.999, 1.002, 1.004, 1.004, 1.004, 1.003, 1.002, 1.001, 1);
 

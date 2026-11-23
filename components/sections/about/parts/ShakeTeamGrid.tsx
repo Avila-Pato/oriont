@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import { TEAM_CARDS } from "@/data/about";
 import { useNearViewport } from "@/hooks/useNearViewport";
 import TeamCard from "./TeamCard";
+import { COLORS } from "@/data/colors";
 
 gsap.registerPlugin(useGSAP);
 
@@ -292,7 +293,7 @@ export default function ShakeTeamGrid() {
         type="button"
         onClick={onButton}
         aria-label={label}
-        className="inline-flex h-10 touch-manipulation items-center rounded-full rounded-bl-md md:hidden border border-[#21255c]/15 bg-white/80 px-4 text-[13px] font-medium text-[#21255c] shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl transition-transform active:scale-95"
+        className="inline-flex h-10 touch-manipulation items-center rounded-full rounded-bl-md md:hidden border border-navy/15 bg-white/80 px-4 text-[13px] font-medium text-navy shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl transition-transform active:scale-95"
       >
         <span aria-live="polite">
           {msg ?? (sensor === "silent" ? (
@@ -301,7 +302,7 @@ export default function ShakeTeamGrid() {
             <svg width="34" height="22" viewBox="0 0 34 22" fill="none" aria-hidden="true" className="block">
               {/* ondas de movimiento a los lados */}
               <g
-                stroke="#248caa"
+                stroke={COLORS.accent}
                 strokeWidth="1.6"
                 strokeLinecap="round"
                 className="origin-center motion-safe:animate-shake-waves"
@@ -313,9 +314,9 @@ export default function ShakeTeamGrid() {
               </g>
               {/* celular */}
               <g className="origin-center motion-safe:animate-phone-shake">
-                <rect x="11.5" y="2" width="11" height="18" rx="2.5" stroke="#21255c" strokeWidth="1.6" />
-                <path d="M15.5 4.6h3" stroke="#21255c" strokeWidth="1.4" strokeLinecap="round" />
-                <circle cx="17" cy="16.8" r="0.9" fill="#248caa" />
+                <rect x="11.5" y="2" width="11" height="18" rx="2.5" stroke={COLORS.navy} strokeWidth="1.6" />
+                <path d="M15.5 4.6h3" stroke={COLORS.navy} strokeWidth="1.4" strokeLinecap="round" />
+                <circle cx="17" cy="16.8" r="0.9" fill={COLORS.accent} />
               </g>
             </svg>
           ))}

@@ -413,7 +413,7 @@ export default function AboutSection() {
             onClick={() => window.scrollBy({ top: window.innerHeight * 1.2, behavior: "smooth" })}
             // se nota por el color (celeste de la marca) y no por el tamaño: mismo diseño del
             // original, con círculo blanco y sombra leve; al pasar el mouse, azul oscuro
-            className="group pointer-events-auto invisible flex cursor-pointer flex-col items-center gap-5 text-[#248caa] opacity-0 transition-colors hover:text-[#21255c]"
+            className="group pointer-events-auto invisible flex cursor-pointer flex-col items-center gap-5 text-accent opacity-0 transition-colors hover:text-navy"
           >
             <span className="font-mono text-[10px] font-medium uppercase tracking-[0.25em] 2xl:text-[12px]">Scroll</span>
 
@@ -436,7 +436,7 @@ export default function AboutSection() {
         {/* Velo y contenido parten ocultos por CSS (como CtaText): si solo los ocultaba GSAP, al
             recalcular ScrollTrigger (invalidateOnRefresh, resize, carga de fuentes) revertía los
             estilos y el formulario quedaba visible antes de tiempo, y luego "aparecía" otra vez. */}
-        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-[#21255c]/95 via-[#21255c]/80 to-[#21255c]/45 opacity-0" />
+        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/80 to-navy/45 opacity-0" />
         <div
           data-expand-content
           className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 short:pb-4 short:pt-24 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0"
@@ -454,7 +454,7 @@ export default function AboutSection() {
         <div className="mt-20">
           <CtaText />
         </div>
-        <ContactForm className="mt-14 border border-[#21255c]/10" />
+        <ContactForm className="mt-14 border border-navy/10" />
       </div>
     </section>
     {/* ancla de "Contacto": la última pantalla del recorrido, donde ya está el formulario */}
@@ -536,17 +536,17 @@ function ExpandSlides({ playing }: { playing: boolean }) {
 function AboutText() {
   return (
     <div className="relative flex max-w-[420px] flex-col items-center text-center 2xl:max-w-[560px]">
-      <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-[#248caa] xl:text-[12px] 2xl:text-[14px]">
-        <span className="h-px w-8 bg-[#248caa]/50 xl:w-12" />
+      <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink xl:text-[12px] 2xl:text-[14px]">
+        <span className="h-px w-8 bg-accent/50 xl:w-12" />
         {ABOUT_COPY.eyebrow}
-        <span className="h-px w-8 bg-[#248caa]/50 xl:w-12" />
+        <span className="h-px w-8 bg-accent/50 xl:w-12" />
       </p>
       <h2 className="mt-5 font-display text-[52px] font-semibold leading-[0.95] tracking-tight sm:text-[64px] xl:text-[96px] 2xl:text-[clamp(110px,6.5vw,150px)]">
         {ABOUT_COPY.title}
         <br />
-        <span className="text-[#248caa]">{ABOUT_COPY.highlight}</span>
+        <span className="text-accent">{ABOUT_COPY.highlight}</span>
       </h2>
-      <p className="mt-6 max-w-[340px] text-[15px] leading-relaxed text-[#21255c]/65 xl:text-[17px] 2xl:max-w-[440px] 2xl:text-[20px]">
+      <p className="mt-6 max-w-[340px] text-[15px] leading-relaxed text-navy/65 xl:text-[17px] 2xl:max-w-[440px] 2xl:text-[20px]">
         {ABOUT_COPY.text}
       </p>
     </div>
@@ -561,33 +561,33 @@ function CtaText({ hidden = false }: { hidden?: boolean }) {
       <h3
         className={`font-display text-[34px] font-semibold leading-[1.05] tracking-tight sm:text-[44px] xl:text-[52px] 2xl:text-[clamp(52px,3.3vw,76px)] ${start}`}
       >
-        {ABOUT_CTA.title} <span className="text-[#248caa]">{ABOUT_CTA.highlight}</span>
+        {ABOUT_CTA.title} <span className="text-accent">{ABOUT_CTA.highlight}</span>
       </h3>
       <p
-        className={`mt-5 max-w-[520px] text-[15px] leading-relaxed text-[#21255c]/65 xl:text-[17px] 2xl:max-w-[640px] 2xl:text-[20px] ${start}`}
+        className={`mt-5 max-w-[520px] text-[15px] leading-relaxed text-navy/65 xl:text-[17px] 2xl:max-w-[640px] 2xl:text-[20px] ${start}`}
       >
         {ABOUT_CTA.text}
       </p>
 
       {/* datos de contacto */}
       <ul
-        className={`mt-8 flex flex-col items-center gap-4 border-t border-[#21255c]/10 pt-6 sm:flex-row sm:items-start sm:gap-10 xl:mt-9 ${start}`}
+        className={`mt-8 flex flex-col items-center gap-4 border-t border-navy/10 pt-6 sm:flex-row sm:items-start sm:gap-10 xl:mt-9 ${start}`}
       >
         {ABOUT_CTA.contact.map((c) => (
           <li key={c.label} className="flex items-center  gap-3 text-left">
-            <span className="grid h-10 w-10 shrink-0 place-items-center  rounded-full bg-[#248caa]/10 text-[#248caa] 2xl:h-12 2xl:w-12">
+            <span className="grid h-10 w-10 shrink-0 place-items-center  rounded-full bg-accent/10 text-accent 2xl:h-12 2xl:w-12">
               <ContactIcon name={c.icon} />
             </span>
             <span>
-              <span className="block items-center justify-center text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[#21255c]/50 2xl:text-[11px]">
+              <span className="block items-center justify-center text-center font-mono text-[10px] uppercase tracking-[0.2em] text-navy/70 2xl:text-[11px]">
                 {c.label}  
               </span>
               {c.href ? (
-                <a href={c.href} className="text-[14px] font-medium text-[#21255c] hover:text-[#248caa] 2xl:text-[16px]">
+                <a href={c.href} className="text-[14px] font-medium text-navy hover:text-accent 2xl:text-[16px]">
                   {c.value}
                 </a>
               ) : (
-                <span className="text-[14px] font-medium text-[#21255c] 2xl:text-[16px]">{c.value}</span>
+                <span className="text-[14px] font-medium text-navy 2xl:text-[16px]">{c.value}</span>
               )}
             </span>
           </li>

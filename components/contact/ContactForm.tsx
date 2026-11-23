@@ -333,7 +333,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
   const errorCount = Object.values(errors).filter(Boolean).length;
   const email = ABOUT_CTA.contact[1].value;
   // mismo estilo que el enlace a la política de privacidad, para que las dos líneas se vean iguales
-  const linkClass = "underline underline-offset-2 transition-colors hover:text-[#248caa]";
+  const linkClass = "underline underline-offset-2 transition-colors hover:text-accent";
   const mailLink = (
     <a href={`mailto:${email}`} className={linkClass}>
       {email}
@@ -356,10 +356,10 @@ export default function ContactForm({ className = "" }: { className?: string }) 
   // campo tiene foco o texto. El ejemplo (placeholder) solo se ve con foco, para no chocar con la
   // etiqueta. El autocompletado del navegador pinta el campo de azul: se tapa con sombra interna.
   const field = (bad: boolean) =>
-    `peer w-full rounded-xl border bg-white px-4 py-3 text-[14px] text-[#21255c] outline-none transition placeholder:text-transparent focus:ring-4 focus:placeholder:text-[#21255c]/35 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:#21255c] 2xl:py-3.5 2xl:text-[16px] ${
+    `peer w-full rounded-xl border bg-white px-4 py-3 text-[14px] text-navy outline-none transition placeholder:text-transparent focus:ring-4 focus:placeholder:text-navy/35 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_white] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-navy)] 2xl:py-3.5 2xl:text-[16px] ${
       bad
-        ? "border-[#c2410c]/70 focus:border-[#c2410c] focus:ring-[#c2410c]/15"
-        : "border-[#21255c]/15 hover:border-[#21255c]/30 focus:border-[#248caa] focus:ring-[#248caa]/15"
+        ? "border-danger/70 focus:border-danger focus:ring-danger/15"
+        : "border-navy/15 hover:border-navy/30 focus:border-accent focus:ring-accent/15"
     }`;
   // Etiqueta: en reposo, dentro del campo a la altura del texto; con foco o texto escrito sube y
   // se posa sobre el borde de arriba (fondo blanco que corta la línea), más chica y en color.
@@ -367,7 +367,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
   const label = (bad: boolean) =>
     `pointer-events-none absolute left-3 top-[22px] flex -translate-y-1/2 items-center gap-1 bg-white px-1 text-[14px] leading-none transition-all duration-200 ease-out 2xl:top-[26px] 2xl:text-[16px]
      peer-focus:top-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] 2xl:peer-focus:top-0 2xl:peer-focus:text-[12px] 2xl:peer-[:not(:placeholder-shown)]:top-0 2xl:peer-[:not(:placeholder-shown)]:text-[12px] ${
-       bad ? "text-[#c2410c]" : "text-[#21255c]/50 peer-focus:text-[#248caa]"
+       bad ? "text-danger" : "text-navy/70 peer-focus:text-accent-ink"
      }`;
 
   return (
@@ -385,22 +385,22 @@ export default function ContactForm({ className = "" }: { className?: string }) 
           status === "sent" ? "opacity-100" : "pointer-events-none invisible opacity-0"
         }`}
       >
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-[#248caa]/12 text-[#248caa]">
+        <span className="grid h-14 w-14 place-items-center rounded-full bg-accent/12 text-accent">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="m5 12.5 4.5 4.5L19 7.5" />
           </svg>
         </span>
-        <p className="mt-5 font-display text-[24px] font-semibold leading-tight text-[#21255c] 2xl:text-[30px]">
+        <p className="mt-5 font-display text-[24px] font-semibold leading-tight text-navy 2xl:text-[30px]">
           ¡Mensaje enviado correctamente!
         </p>
       </div>
 
-      <p className="font-display text-[22px] font-semibold leading-tight text-[#21255c] 2xl:text-[28px]">
+      <p className="font-display text-[22px] font-semibold leading-tight text-navy 2xl:text-[28px]">
         {CONTACT_FORM.title}
       </p>
-      <p className="mt-1.5 text-[14px] text-[#21255c]/60 2xl:text-[16px]">{CONTACT_FORM.text}</p>
-      <p className="mt-1 text-[12px] text-[#21255c]/45">
-        Los campos con <span className="text-[#248caa]">*</span> son obligatorios.
+      <p className="mt-1.5 text-[14px] text-navy/70 2xl:text-[16px]">{CONTACT_FORM.text}</p>
+      <p className="mt-1 text-[12px] text-navy/70">
+        Los campos con <span className="text-accent">*</span> son obligatorios.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:gap-5 lg:short:mt-4 lg:short:gap-3">
@@ -441,14 +441,14 @@ export default function ContactForm({ className = "" }: { className?: string }) 
 
                   {/* elementos requeridos */}
                   {f.required && (
-                    <span aria-hidden className="text-[#248caa]">*</span>
+                    <span aria-hidden className="text-accent">*</span>
                   )}
 
                 </label>
               </div>
               {/* alto reservado solo cuando hay error: aparece debajo sin mover lo de al lado */}
               {err && (
-                <p id={errId} className="mt-1.5 flex items-center gap-1.5 text-[12px] text-[#c2410c]">
+                <p id={errId} className="mt-1.5 flex items-center gap-1.5 text-[12px] text-danger">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-3.5 w-3.5 shrink-0" aria-hidden>
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 7.5v5.5M12 16.5v.01" />
@@ -472,7 +472,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
         <div className={`mt-5 lg:short:mt-3 ${compact ? "min-h-35" : "min-h-16.25"}`}>
           <div ref={boxRef} />
           {captchaFailed && (
-            <p className="text-[12px] text-[#c2410c]">
+            <p className="text-[12px] text-danger">
               No se pudo cargar la verificación de seguridad. Recarga la página o escríbenos a {mailLink}.
             </p>
           )}
@@ -489,7 +489,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
           {/* aria-live: el lector de pantalla anuncia el resultado al enviar */}
           <p
             aria-live="polite"
-            className={`flex min-h-[3lh] items-center text-[12px] leading-snug 2xl:text-[13px] ${statusBad ? "text-[#c2410c]" : "text-[#21255c]/50"}`}
+            className={`flex min-h-[3lh] items-center text-[12px] leading-snug 2xl:text-[13px] ${statusBad ? "text-danger" : "text-navy/70"}`}
           >
             {/* span: con flex, el texto y el enlace serían ítems separados y no fluirían juntos */}
             <span>{statusText}</span>
@@ -499,7 +499,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
             type="submit"
             disabled={status === "sending"}
             aria-busy={status === "sending"}
-            className="group inline-flex cursor-pointer items-center gap-2 justify-self-end rounded-full bg-[#21255c] py-2 pl-5 pr-2 text-[14px] font-medium text-[#f5f0e6] transition hover:bg-[#2c3175] disabled:cursor-wait disabled:opacity-70 2xl:py-2.5 2xl:pl-6 2xl:text-[16px]"
+            className="group inline-flex cursor-pointer items-center gap-2 justify-self-end rounded-full bg-navy py-2 pl-5 pr-2 text-[14px] font-medium text-cream transition hover:bg-[#2c3175] disabled:cursor-wait disabled:opacity-70 2xl:py-2.5 2xl:pl-6 2xl:text-[16px]"
           >
             {/* las dos etiquetas apiladas: el botón toma el ancho de la más larga y no cambia */}
             <span className="grid">
@@ -508,7 +508,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
               </span>
               <span className="col-start-1 row-start-1 text-center">{status === "sending" ? "Enviando…" : "Enviar mensaje"}</span>
             </span>
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#248caa] transition group-hover:translate-x-0.5">→</span>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-accent transition group-hover:translate-x-0.5">→</span>
           </button>
         </div>
       </div>
@@ -516,7 +516,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
       {/* aviso de consentimiento (Ley 21.719): siempre visible, así no aparece y mueve nada.
           Pestaña nueva: el formulario puede estar en el panel y no se pierde lo escrito.
           En pantallas bajas el mensaje se achica (h-16) para que la tarjeta siga cabiendo en 1280×600 */}
-      <p className="mt-3 lg:short:mt-1.5 text-[12px] leading-snug text-[#21255c]/50 2xl:text-[13px]">
+      <p className="mt-3 lg:short:mt-1.5 text-[12px] leading-snug text-navy/70 2xl:text-[13px]">
         Al enviar aceptas que usemos tus datos para responderte, según nuestra{" "}
         <a href="/privacidad" target="_blank" rel="noopener" className={linkClass}>
           política de privacidad

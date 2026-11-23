@@ -14,7 +14,7 @@ export const BRAND_LOGOS: Record<BrandId, ReactNode> = {
   oriont: (
       <div className="flex items-center gap-3 sm:gap-4">
         <OriontMark className="h-10 w-10 sm:h-14 sm:w-14 md:h-16 md:w-16" />
-        <div className="font-display text-[22px] font-bold tracking-[0.14em] sm:text-[30px] text-[#f5f0e6] md:text-[38px]">ORIONT</div>
+        <div className="font-display text-[22px] font-bold tracking-[0.14em] sm:text-[30px] text-cream md:text-[38px]">ORIONT</div>
       </div>
   ),
   dental: (

@@ -64,18 +64,18 @@ export default function SolutionsSection() {
       <section
         ref={root}
         id="soluciones"
-        className="relative overflow-x-clip bg-white pb-28 pt-24 text-[#21255c] md:pb-40 md:pt-32 lg:sticky lg:top-0 lg:flex lg:min-h-svh lg:items-center lg:py-20 lg:short:pb-6 lg:short:pt-24"
+        className="relative overflow-x-clip bg-white pb-28 pt-24 text-navy md:pb-40 md:pt-32 lg:sticky lg:top-0 lg:flex lg:min-h-svh lg:items-center lg:py-20 lg:short:pb-6 lg:short:pt-24"
       >
         <div className="container-page grid gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:items-center lg:gap-12">
           <div>
-            <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-[#248caa] xl:text-[12px]">
-              <span data-vc-eline className="h-px w-6 bg-[#248caa] xl:w-8" />
+            <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink xl:text-[12px]">
+              <span data-vc-eline className="h-px w-6 bg-accent xl:w-8" />
               <span data-vc-elabel>Cadena de valor</span>
             </p>
             <h2 data-vc-title className="mt-5 font-display text-[36px] font-semibold leading-[1.05] tracking-tight md:text-[44px] xl:text-[52px] lg:short:mt-3 xl:short:text-[48px] 2xl:tall:text-[64px]">
-              Del sponsor al <span className="text-[#248caa]">cliente final.</span>
+              Del sponsor al <span className="text-accent">cliente final.</span>
             </h2>
-            <p data-vc-sub className="mt-5 max-w-[420px] 2xl:tall:max-w-[500px] text-[15px] leading-relaxed text-[#21255c]/70 xl:text-[17px] lg:short:mt-3 xl:short:text-[16px] 2xl:tall:mt-6 2xl:tall:text-[19px]">
+            <p data-vc-sub className="mt-5 max-w-[420px] 2xl:tall:max-w-[500px] text-[15px] leading-relaxed text-navy/70 xl:text-[17px] lg:short:mt-3 xl:short:text-[16px] 2xl:tall:mt-6 2xl:tall:text-[19px]">
               Acompañamos cada eslabón de la cadena: desde la idea del producto hasta la conversación con el cliente.
             </p>
             <StepIndex marked={marked} onPick={pick} />

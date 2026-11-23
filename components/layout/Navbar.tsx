@@ -114,7 +114,7 @@ export default function Navbar() {
             style={{ left: area.left, top: area.top, width: area.right - area.left, height: area.bottom - area.top }}
           >
             <span
-              className="absolute inset-0 bg-[#21255c] transition-[clip-path] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute inset-0 bg-navy transition-[clip-path] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 clipPath: `inset(${box.top - area.top}px ${area.right - box.left - box.width}px ${
                   area.bottom - box.top - box.height
@@ -129,7 +129,7 @@ export default function Navbar() {
           aria-label="Oriont, inicio"
           // cápsula blanca casi opaca con borde y sombra fijos: el logo se despega del fondo claro
           // del hero desde el primer frame (antes era blanco al 75 % sin borde y se perdía)
-          className={`pointer-events-auto relative justify-self-start flex h-14 items-center rounded-full bg-white/95 px-4 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-opacity duration-500 ${
+          className={`pointer-events-auto relative justify-self-start flex h-14 items-center rounded-full bg-white/95 px-4 shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-navy/10 backdrop-blur-2xl transition-opacity duration-500 ${
             tight ? "lg:pointer-events-none lg:opacity-0" : ""
           }`}
         >
@@ -168,7 +168,7 @@ export default function Navbar() {
                 onBlur={() => setHovered(null)}
                 // texto oscuro sobre el indicador: el enlace bajo el mouse, o la sección actual
                 className={`peer relative z-10 flex h-11 items-center rounded-full px-5 text-[13px] font-medium transition-colors duration-300 focus-visible:outline-none ${
-                  target === l.href ? "text-[#21255c]" : "text-white/75"
+                  target === l.href ? "text-navy" : "text-white/75"
                 }`}
               >
                 {l.label}
@@ -181,7 +181,7 @@ export default function Navbar() {
         <div className="pointer-events-auto col-start-3 flex items-center gap-2 justify-self-end">
           <button
             type="button"
-            className={`relative hidden h-10 rounded-full px-3 font-mono text-[11px] tracking-[0.2em] text-[#21255c] opacity-60 transition-opacity hover:opacity-100 md:block ${
+            className={`relative hidden h-10 rounded-full px-3 font-mono text-[11px] tracking-[0.2em] text-navy opacity-60 transition-opacity hover:opacity-100 md:block ${
               tight ? "lg:pointer-events-none lg:opacity-0" : ""
             }`}
             aria-label="Idioma: español"
@@ -198,12 +198,12 @@ export default function Navbar() {
             }}
             // misma cápsula blanca que el logo, arriba y al bajar (antes crema que cambiaba al
             // hacer scroll). El borde del hover va en ::after y solo anima opacity
-            className="group relative hidden h-12 items-center gap-3 rounded-full bg-white/95 pl-6 pr-2 text-[13px] font-medium text-[#21255c] shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-[#21255c]/10 backdrop-blur-2xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-[#21255c] after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
+            className="group relative hidden h-12 items-center gap-3 rounded-full bg-white/95 pl-6 pr-2 text-[13px] font-medium text-navy shadow-[0_10px_30px_-10px_rgba(33,37,92,0.45)] ring-1 ring-navy/10 backdrop-blur-2xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] after:absolute after:-inset-px after:rounded-full after:border after:border-navy after:opacity-0 after:transition-opacity after:duration-300 hover:after:opacity-30 sm:inline-flex"
             style={{ transform: `translateX(${tight ? shift.cta : 0}px)` }}
           >
             {NAV_CTA.label}
             {/* ícono de correo (antes una flecha); al pasar el mouse crece un poco */}
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-[#248caa] text-white transition-transform duration-300 group-hover:scale-110">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-white transition-transform duration-300 group-hover:scale-110">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -225,14 +225,14 @@ export default function Navbar() {
             aria-expanded={open}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
             // misma cápsula blanca que el logo al bajar (antes un círculo azul marino macizo)
-            className="relative grid h-14 w-14 place-items-center rounded-full border border-[#21255c]/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl lg:hidden"
+            className="relative grid h-14 w-14 place-items-center rounded-full border border-navy/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl lg:hidden"
           >
             <span className="relative block h-3 w-4">
               <span
-                className={`absolute left-0 top-0 h-[1.5px] w-4 rounded-full bg-[#21255c] transition-transform duration-300 ${open ? "translate-y-[5.25px] rotate-45" : ""}`}
+                className={`absolute left-0 top-0 h-[1.5px] w-4 rounded-full bg-navy transition-transform duration-300 ${open ? "translate-y-[5.25px] rotate-45" : ""}`}
               />
               <span
-                className={`absolute bottom-0 left-0 h-[1.5px] rounded-full bg-[#21255c] transition-transform duration-300 ${open ? "w-4 -translate-y-[5.25px] -rotate-45" : "w-2.5"}`}
+                className={`absolute bottom-0 left-0 h-[1.5px] rounded-full bg-navy transition-transform duration-300 ${open ? "w-4 -translate-y-[5.25px] -rotate-45" : "w-2.5"}`}
               />
             </span>
           </button>
@@ -242,7 +242,7 @@ export default function Navbar() {
       {/* menú móvil: siempre maquetado (está en el header fijo, no empuja la página); se abre con
           clip-path + opacity en vez de animar max-height */}
       <div
-        className={`mx-4 mt-2 rounded-3xl border border-[#21255c]/10 bg-white/95 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] backdrop-blur-xl transition-[clip-path,opacity,visibility] duration-300 md:mx-8 lg:hidden ${
+        className={`mx-4 mt-2 rounded-3xl border border-navy/10 bg-white/95 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.45)] backdrop-blur-xl transition-[clip-path,opacity,visibility] duration-300 md:mx-8 lg:hidden ${
           open
             ? "pointer-events-auto visible opacity-100 [clip-path:inset(0_0_0_0_round_24px)]"
             : "pointer-events-none invisible opacity-0 [clip-path:inset(0_0_100%_0_round_24px)]"
@@ -250,15 +250,15 @@ export default function Navbar() {
       >
         <ul className="flex flex-col px-3 pt-3">
           {NAV_LINKS.map((l, i) => (
-            <li key={l.href} className="border-b border-[#21255c]/8 last:border-0">
+            <li key={l.href} className="border-b border-navy/8 last:border-0">
               <a
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-4 rounded-2xl px-4 py-3.5 font-display text-[19px] font-semibold tracking-tight text-[#21255c] active:bg-[#dcebf3]/60"
+                className="flex items-center gap-4 rounded-2xl px-4 py-3.5 font-display text-[19px] font-semibold tracking-tight text-navy active:bg-ice/60"
               >
-                <span className="font-mono text-[11px] font-normal text-[#248caa]">{String(i + 1).padStart(2, "0")}</span>
+                <span className="font-mono text-[11px] font-normal text-accent-ink">{String(i + 1).padStart(2, "0")}</span>
                 <span className="flex-1">{l.label}</span>
-                <span aria-hidden className="text-[#21255c]/30">→</span>
+                <span aria-hidden className="text-navy/30">→</span>
               </a>
             </li>
           ))}
@@ -272,7 +272,7 @@ export default function Navbar() {
               setOpen(false);
               openContact();
             }}
-            className="flex items-center justify-between rounded-2xl bg-[#248caa] py-2 pl-5 pr-2 text-[15px] font-medium text-white active:bg-[#1f7a95]"
+            className="flex items-center justify-between rounded-2xl bg-accent py-2 pl-5 pr-2 text-[15px] font-medium text-white active:bg-[#1f7a95]"
           >
             {NAV_CTA.label}
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15">

@@ -14,15 +14,15 @@ export default function StepIndex({ marked, onPick }: { marked: number; onPick: 
               onClick={() => onPick(i)}
               aria-current={on}
               className={`group flex w-full items-center cursor-pointer gap-4 rounded-xl px-3 py-3 text-left short:py-2.5 2xl:tall:py-3.5 transition-colors duration-150 motion-reduce:transition-none ${
-                on ? "bg-[#dcebf3]/60" : "hover:bg-[#f5f6f8]"
+                on ? "bg-ice/60" : "hover:bg-[#f5f6f8]"
               }`}
             >
-              <span className={`font-mono text-[12px] 2xl:tall:text-[13px] transition-opacity ${on ? "text-[#248caa]" : "text-[#21255c]/40"}`}>{pad(i)}</span>
+              <span className={`font-mono text-[12px] 2xl:tall:text-[13px] transition-opacity ${on ? "text-accent-ink" : "text-navy/40"}`}>{pad(i)}</span>
               {/* la rayita crece con scale (no con width: animar el ancho recalculaba el layout
                   de la fila en cada frame y corría el texto de al lado) */}
               <span
                 className={`h-px w-10 flex-none origin-left bg-current transition-[scale,color] duration-200 motion-reduce:transition-none ${
-                  on ? "scale-x-100 text-[#248caa]" : "scale-x-60 text-[#21255c]/25 group-hover:scale-x-80"
+                  on ? "scale-x-100 text-accent" : "scale-x-60 text-navy/25 group-hover:scale-x-80"
                 }`}
               />
               <span

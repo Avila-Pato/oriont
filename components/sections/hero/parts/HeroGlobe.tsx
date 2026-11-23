@@ -52,7 +52,7 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
           if (ready && e.target === e.currentTarget) setPlaceholderGone(true);
         }}
       >
-        <div className="absolute inset-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_32%_30%,#ffffff_0%,#f3f5f8_55%,#e3e8ef_88%,#d2d9e3_100%)] opacity-60 ring-1 ring-[#21255c]/15">
+        <div className="absolute inset-0 overflow-hidden rounded-full bg-[radial-gradient(circle_at_32%_30%,#ffffff_0%,#f3f5f8_55%,#e3e8ef_88%,#d2d9e3_100%)] opacity-60 ring-1 ring-navy/15">
           {/* línea de escaneo: el contenedor completo se traslada, la línea va en su borde superior */}
           <div className="absolute inset-0 animate-globe-scan">
             <div className="h-px w-full bg-[linear-gradient(90deg,transparent,rgba(36,140,170,0.9),transparent)]" />
@@ -75,7 +75,7 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
 
       {/* tarjeta del país activo */}
       <div
-        className={`pointer-events-none absolute right-0 top-[6%] w-[230px] rounded-2xl border border-[#21255c]/10 bg-white/90 p-5 shadow-[0_20px_50px_-25px_rgba(33,37,92,0.45)] backdrop-blur-xl transition-[opacity,translate] duration-300 max-sm:right-[-2%] max-sm:top-0 max-sm:w-[150px] max-sm:rounded-xl max-sm:p-3 ${
+        className={`pointer-events-none absolute right-0 top-[6%] w-[230px] rounded-2xl border border-navy/10 bg-white/90 p-5 shadow-[0_20px_50px_-25px_rgba(33,37,92,0.45)] backdrop-blur-xl transition-[opacity,translate] duration-300 max-sm:right-[-2%] max-sm:top-0 max-sm:w-[150px] max-sm:rounded-xl max-sm:p-3 ${
           info ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
         }`}
         aria-live="polite"
@@ -83,34 +83,34 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
         {info && (
           <>
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[11px] tracking-[0.25em] text-[#248caa]">{info.code}</span>
-              <span className="flex items-center gap-1.5 whitespace-nowrap font-mono text-[11px] text-[#21255c]/60">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#248caa]" />
+              <span className="font-mono text-[11px] tracking-[0.25em] text-accent-ink">{info.code}</span>
+              <span className="flex items-center gap-1.5 whitespace-nowrap font-mono text-[11px] text-navy/70">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
                 {time(info.timeZone)}
               </span>
             </div>
-            <p className="mt-2 font-display text-2xl font-semibold leading-tight text-[#21255c] max-sm:mt-1 max-sm:text-lg">{info.name}</p>
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#21255c]/60 max-sm:text-xs">
+            <p className="mt-2 font-display text-2xl font-semibold leading-tight text-navy max-sm:mt-1 max-sm:text-lg">{info.name}</p>
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/70 max-sm:text-xs">
               {info.city}
               {info.hq && (
-                <span className="whitespace-nowrap rounded-full bg-[#21255c] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-[#f5f0e6]">
+                <span className="whitespace-nowrap rounded-full bg-navy px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-cream">
                   Sede principal
                 </span>
               )}
             </p>
-            <div className="mt-4 border-t border-[#21255c]/10 pt-3 max-sm:hidden">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#21255c]/45">Conectado con</p>
+            <div className="mt-4 border-t border-navy/10 pt-3 max-sm:hidden">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-navy/70">Conectado con</p>
               <ul className="mt-2 space-y-1">
                 {others.map((o) => (
-                  <li key={o.code} className="flex items-center justify-between text-sm text-[#21255c]">
+                  <li key={o.code} className="flex items-center justify-between text-sm text-navy">
                     <span className="flex items-center gap-2">
-                      <span className="h-px w-4 bg-[#248caa]" />
+                      <span className="h-px w-4 bg-accent" />
                       {o.city}
                       {o.hq && (
-                        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#248caa]">Sede</span>
+                        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent-ink">Sede</span>
                       )}
                     </span>
-                    <span className="whitespace-nowrap font-mono text-[11px] text-[#21255c]/50">{time(o.timeZone)}</span>
+                    <span className="whitespace-nowrap font-mono text-[11px] text-navy/70">{time(o.timeZone)}</span>
                   </li>
                 ))}
               </ul>
@@ -121,7 +121,7 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
 
       {/* selector de países */}
       <div className="absolute inset-x-0 -bottom-2 flex justify-center">
-        <div className="flex items-center gap-1 rounded-full border border-[#21255c]/10 bg-white/85 p-1 shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl">
+        <div className="flex items-center gap-1 rounded-full border border-navy/10 bg-white/85 p-1 shadow-[0_10px_30px_-15px_rgba(33,37,92,0.4)] backdrop-blur-xl">
           {COUNTRIES.map((c) => {
             const on = active === c.code;
             return (
@@ -146,7 +146,7 @@ export default function HeroGlobe({ className = "" }: { className?: string }) {
                 onClick={(e) => e.detail === 0 && toggle(c.code)}
                 aria-pressed={selected === c.code}
                 className={`flex cursor-pointer touch-manipulation items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
-                  on ? "bg-[#21255c] text-[#f5f0e6]" : "text-[#21255c]/75 hover:bg-[#21255c]/8 hover:text-[#21255c]"
+                  on ? "bg-navy text-cream" : "text-navy/75 hover:bg-navy/8 hover:text-navy"
                 }`}
               >
                 <CountryFlag code={c.code} className={`size-5 transition-shadow ${on ? "ring-2 ring-white/70 rounded-full" : ""}`} />

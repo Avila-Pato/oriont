@@ -44,17 +44,17 @@ export default function ServicesSection() {
       ref={root}
       id="servicios"
       // hoja que sube sobre la sección anterior: va encima, con esquinas redondeadas y sombra hacia arriba
-      className="relative bg-background py-24 text-[#21255c] "
+      className="relative bg-background py-24 text-navy "
     >
       <div data-brands className="container-page">
         <div className="flex flex-col items-center text-center">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#21255c] p-3 text-[#f5f0e6] xl:h-16 xl:w-16 xl:p-3.5">
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-navy p-3 text-cream xl:h-16 xl:w-16 xl:p-3.5">
             <IconPeople />
           </span>
           <h2 className="mt-5 font-display text-[28px] font-semibold leading-tight tracking-tight md:text-[40px] xl:text-[48px] lg:short:mt-4 xl:short:text-[42px]">
-            Así llegamos a tus <span className="text-[#248caa]">clientes</span>
+            Así llegamos a tus <span className="text-accent">clientes</span>
           </h2>
-          <p className="mt-3 max-w-[480px] text-[15px] leading-relaxed text-[#21255c]/70 xl:mt-5 xl:max-w-[560px] xl:text-[18px]">
+          <p className="mt-3 max-w-[480px] text-[15px] leading-relaxed text-navy/70 xl:mt-5 xl:max-w-[560px] xl:text-[18px]">
             A través de nuestras empresas. Pasa el mouse o toca cada una para conocerla.
           </p>
         </div>
@@ -107,7 +107,7 @@ function BrandStats({ stats, on, muted }: { stats: BrandStat[]; on: boolean; mut
     <div ref={wrap} className="grid grid-cols-3 gap-3 md:gap-6">
       {stats.map((s, i) => (
         <div key={s.label} className="flex gap-3 md:gap-6">
-          {i > 0 && <span data-bline aria-hidden className="w-px origin-top bg-[#f5f0e6]/15" />}
+          {i > 0 && <span data-bline aria-hidden className="w-px origin-top bg-cream/15" />}
           <div data-bstat>
             <p className="whitespace-nowrap font-display text-[26px] font-semibold leading-none tracking-tight sm:text-[34px] md:text-[44px] xl:text-[56px] lg:short:text-[40px]">
               <span className="text-[#8fcbef]">{s.prefix}</span>

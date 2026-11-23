@@ -1,4 +1,5 @@
 import type { CountryCode } from "@/data/countries";
+import { COLORS } from "@/data/colors";
 
 /** estrella de 5 puntas centrada en (cx, cy) */
 function star(cx: number, cy: number, outer: number, inner: number) {
@@ -47,7 +48,7 @@ export default function CountryFlag({ code, className = "size-5" }: { code: Coun
       </defs>
       <g clipPath={`url(#${id})`}>{FLAGS[code]}</g>
       {/* borde sutil: la parte blanca no se pierde sobre fondos claros */}
-      <circle cx="12" cy="12" r="11.5" fill="none" stroke="#21255c" strokeOpacity="0.15" />
+      <circle cx="12" cy="12" r="11.5" fill="none" stroke={COLORS.navy} strokeOpacity="0.15" />
     </svg>
   );
 }

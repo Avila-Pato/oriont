@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/data/site";
+import { COLORS } from "@/data/colors";
 
 /*
  * Genera /manifest.webmanifest: la ficha del sitio para el celular. Al "agregar a pantalla de
@@ -14,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "browser",
     background_color: "#F8F9F9",
-    theme_color: "#21255c",
+    theme_color: COLORS.navy,
     lang: "es",
     icons: [
       { src: "/icon.png", type: "image/png" },

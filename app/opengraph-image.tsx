@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 import { HERO_COPY } from "@/data/hero";
+import { COLORS } from "@/data/colors";
 
 /*
  * Imagen al compartir el sitio (WhatsApp, LinkedIn, X, Slack…): fondo marino de la marca, logo y
@@ -28,7 +29,7 @@ export default function Image() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "72px 80px",
-          background: "linear-gradient(135deg, #21255c 0%, #1a1d4a 60%, #1d4f73 100%)",
+          background: `linear-gradient(135deg, ${COLORS.navy} 0%, #1a1d4a 60%, #1d4f73 100%)`,
           color: "white",
           fontFamily: "sans-serif",
         }}

@@ -122,9 +122,9 @@ export default function SponsorLive() {
   );
 
   return (
-    <div ref={root} aria-hidden className="border-l border-[#21255c]/10 pl-8 xl:pl-10">
-      <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[#21255c]/50">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#248caa]" />
+    <div ref={root} aria-hidden className="border-l border-navy/10 pl-8 xl:pl-10">
+      <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-navy/70">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
         Conectados con Oriont
       </p>
       {/* una sola línea de alto fijo (un nombre largo no salta a dos líneas); la máscara recorta
@@ -132,22 +132,22 @@ export default function SponsorLive() {
       <div className="mt-4 overflow-hidden">
         <p
           data-live-name
-          className="overflow-hidden text-ellipsis whitespace-nowrap font-display will-change-[transform,opacity] text-[44px] font-semibold leading-[1.1] tracking-tight text-[#21255c] xl:text-[56px]"
+          className="overflow-hidden text-ellipsis whitespace-nowrap font-display will-change-[transform,opacity] text-[44px] font-semibold leading-[1.1] tracking-tight text-navy xl:text-[56px]"
         >
           {SPONSORS[0].name}
         </p>
       </div>
-      <div className="mt-3 flex items-center justify-between text-[14px] text-[#21255c]/55">
-        <span data-live-industry className="font-medium text-[#248caa] will-change-[opacity]">
+      <div className="mt-3 flex items-center justify-between text-[14px] text-navy/70">
+        <span data-live-industry className="font-medium text-accent-ink will-change-[opacity]">
           {SPONSORS[0].industry}
         </span>
         <span data-live-num>{`1 de ${SPONSORS.length}`}</span>
       </div>
       {/* avance por las marcas: solo transform */}
-      <div className="mt-3 h-px w-full bg-[#21255c]/10">
+      <div className="mt-3 h-px w-full bg-navy/10">
         <div
           data-live-bar
-          className="h-px w-full origin-left bg-[#248caa] will-change-transform"
+          className="h-px w-full origin-left bg-accent will-change-transform"
           style={{ transform: `scaleX(${1 / SPONSORS.length})` }}
         />
       </div>
