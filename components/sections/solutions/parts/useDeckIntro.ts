@@ -3,7 +3,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { SKIP_INTRO_EVENT, getLenis } from "@/components/layout/SmoothScroll";
-import { STEP_DUR } from "./constants";
+import { STEP_DUR, STEP_DUR_FAST } from "./constants";
 
 
 
@@ -150,11 +150,14 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           }
           animating = true;
           at += Math.sign(target - at);
-          // inOut: arranca y frena suave, se desliza en vez de saltar
+          // la última carta pedida sube con su tiempo completo y frena suave; si quedan más en
+          // cola (scroll fuerte), las de antes van más rápido para no quedar atrasadas
+          const last = at === target;
           gsap.to(tl, {
             time: at,
-            duration: STEP_DUR,
-            ease: "power2.inOut",
+            duration: last ? STEP_DUR : STEP_DUR_FAST,
+            // inOut suave: la carta ya trae su propia curva "out" (arriba); dos "out" sumados la disparaban al inicio
+            ease: last ? "sine.inOut" : "none",
             overwrite: true,
             onComplete: advance,
           });

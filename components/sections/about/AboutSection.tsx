@@ -35,9 +35,9 @@ const MID = (TEAM_CARDS.length - 1) / 2;
 /** Composición final (llamado + fila de tarjetas + flecha), centrada en el alto visible. */
 const HOLD = 0.5; // pausa inicial (en unidades del timeline) con el círculo completo a la vista
 /** Scroll (en altos de pantalla) que dura la parte atada al scroll: círculo → fila → llamado. */
-const SCRUB_VH = 1.9;
+const SCRUB_VH = 1; // antes 1,9 (~17 giros de rueda hasta el llamado: demasiado)
 // Después de abrirse el formulario la sección sigue fija 60vh más de scroll antes de que siga
-// la página: va en el alto de `track` (230vh = SCRUB_VH − 0,2 + 0,6).
+// la página: va en el alto de `track` (140vh = SCRUB_VH − 0,2 + 0,6).
 /** Velocidad de la apertura automática (1 = 1 s por unidad del timeline; dura ~1 s en total). */
 const OPEN_SPEED = 1;
 const CTA_TOP = 96; // px libres arriba (menú flotante)
@@ -248,7 +248,7 @@ export default function AboutSection() {
               // arranca antes de que la sección quede fija: al llegar ya se está moviendo
               start: "top 20%",
               // scroll que dura la parte 2 (en altos de pantalla). Si se cambia, ajustar el alto
-              // de `track` (230vh)
+              // de `track` (140vh)
               end: () => `+=${window.innerHeight * SCRUB_VH}`,
               scrub: 1, // suavidad respecto a la rueda: más alto = la animación alcanza al scroll con más inercia (más fluido)
               invalidateOnRefresh: true,
@@ -353,8 +353,8 @@ export default function AboutSection() {
 
   return (
     // escritorio: alto de la sección + recorrido sticky = SCRUB_VH − 0,2 (arranca en "top 20%")
-    // + 0,6 con el formulario abierto → 170vh + 60vh. Si se cambia SCRUB_VH, actualizar el 230vh.
-    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+230vh)]">
+    // + 0,6 con el formulario abierto → 80vh + 60vh. Si se cambia SCRUB_VH, actualizar el 140vh.
+    <div ref={track} id="nosotros" className="relative lg:h-[calc(max(100svh,560px)+140vh)]">
     <section
       ref={scope}
       className="relative flex w-full flex-col items-center overflow-hidden px-4 py-24 lg:sticky lg:top-0 lg:block lg:p-0"
