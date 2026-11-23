@@ -984,9 +984,19 @@ export default function Globe({ className = "", active = null, focus = null, onH
     // Se observa el contenedor del globo (la caja visible), no el canvas: el canvas es 28 % más
     // grande y se sale por abajo, así que con Cadena de valor ya en pantalla (y el globo tapado)
     // seguía "visible" y dibujaba a 30 fps sin que se viera.
-    // Con menos del 15 % del globo a la vista (solo asoma el borde) ya no se dibuja: antes bastaba
-    // 1 px visible para seguir animando.
-    const unwatch = watchVisible(hit, (v) => (v ? start() : stop()), 0.15);
+    // Con menos de la mitad del globo a la vista (ya se está saliendo del inicio) se detiene todo:
+    // giro, pulsos y arcos. Antes seguía hasta que quedaba solo el borde (15 %).
+    // data-paused congela también las animaciones CSS del contenedor (punto que late en la tarjeta
+    // del país, línea de escaneo de la carga): ver globals.css
+    const unwatch = watchVisible(
+      hit,
+      (v) => {
+        hit.toggleAttribute("data-paused", !v);
+        if (v) start();
+        else stop();
+      },
+      0.5,
+    );
 
     return () => {
       stop();

@@ -2,7 +2,7 @@ import { useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { SKIP_INTRO_EVENT, getLenis } from "@/components/layout/SmoothScroll";
+import { SKIP_INTRO_EVENT, getLenis, setWheelLimit } from "@/components/layout/SmoothScroll";
 import { STEP_DUR, STEP_DUR_FAST } from "./constants";
 
 
@@ -204,7 +204,12 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           // (un poquito de scroll) la carta sube completa sola, sin quedar a medio camino.
           // Un tramo por carta, también para la 01: así se alcanza a leer antes de que suba la 02.
           onUpdate: (self) => {
-            const step = gsap.utils.clamp(0, cards.length - 1, Math.floor(self.progress * cards.length));
+            // con Lenis se mira el DESTINO del scroll (lo que pidió el giro), no la posición actual:
+            // el scroll suave tarda ~0,4 s en recorrer el tramo y la carta esperaba. Así arranca
+            // en el cuadro siguiente al giro.
+            const lenis = getLenis();
+            const progress = lenis ? (lenis.targetScroll - self.start) / (self.end - self.start || 1) : self.progress;
+            const step = gsap.utils.clamp(0, cards.length - 1, Math.floor(progress * cards.length));
             if (step === target) return;
             target = step;
             // si ya hay una carta en camino, al terminar sigue sola hacia el nuevo paso
@@ -217,8 +222,11 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           },
         });
 
-        // Sin freno de la rueda (antes setWheelLimit detenía el scroll hasta que llegara cada
-        // carta): el scroll sigue fluido y las cartas se reparten detrás, rápido y de a una.
+        // Tope SOLO al final del recorrido: entre cartas el scroll sigue fluido, pero la rueda no
+        // pasa del final hasta que la última carta terminó de subir (si no, con 80 px por carta la
+        // sección se iba mientras las cartas seguían llegando). Llegada la 05, el giro siguiente sigue.
+        const deckDone = () => played.current || (at === cards.length - 1 && !animating);
+        setWheelLimit(() => (deckDone() ? null : (ref.st?.end ?? null)));
 
         // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
         window.addEventListener(SKIP_INTRO_EVENT, skip);
@@ -226,6 +234,7 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         ScrollTrigger.refresh();
         return () => {
           endRef.current = null;
+          setWheelLimit(null);
           window.removeEventListener(SKIP_INTRO_EVENT, skip);
           if (!played.current) {
             setShown(null);

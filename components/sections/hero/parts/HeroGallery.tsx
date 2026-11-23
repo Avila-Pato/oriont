@@ -27,8 +27,8 @@ export default function HeroGallery() {
     let raf = 0;
     let visible = false;
     const onMove = (e: MouseEvent) => {
-      // con el hero fuera de pantalla el cursor se ignora del todo: si no, al volver las fotos se
-      // iban hacia donde quedó el mouse en otra sección (parecía que lo seguían desde allá)
+      // solo con el cursor SOBRE el hero (escucha en la sección, no en window): con el mouse en otra
+      // sección las fotos no lo siguen aunque el hero todavía se vea arriba
       if (!visible) return;
       // dirección del cursor respecto al centro de la pantalla (-1..1)
       target = {
@@ -113,11 +113,13 @@ export default function HeroGallery() {
       0.01,
     );
 
-    window.addEventListener("mousemove", onMove, { passive: true });
-    document.documentElement.addEventListener("mouseleave", onLeave);
+    // el cursor sale del hero (a otra sección, al menú o fuera de la ventana): vuelven al centro
+    const hero = wrap.closest("section") ?? document.documentElement;
+    hero.addEventListener("mousemove", onMove, { passive: true });
+    hero.addEventListener("mouseleave", onLeave);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      document.documentElement.removeEventListener("mouseleave", onLeave);
+      hero.removeEventListener("mousemove", onMove);
+      hero.removeEventListener("mouseleave", onLeave);
       ro.disconnect();
       unwatch();
       stop();
