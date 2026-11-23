@@ -260,10 +260,13 @@ export default function SponsorCircuit() {
         // giro: solo algunos anillos (SPINNING), por CSS en el compositor (globals.css,
         // circuit-spin). Acá solo se pausa fuera de pantalla y durante la entrada.
         const pause = () => delete el.dataset.spin;
+        // Solo con una parte real del abanico a la vista (entre el 80 % y el 20 % de la pantalla):
+        // con "top bottom / bottom top" seguía girando con apenas 60 px asomando arriba (en Nosotros),
+        // y las capas grandes que giran eran ~todo el uso de GPU de esa sección.
         ScrollTrigger.create({
           trigger: el,
-          start: "top bottom",
-          end: "bottom top",
+          start: "top 80%",
+          end: "bottom 20%",
           onToggle: (self) => {
             onScreen = self.isActive;
             spinIfVisible();
