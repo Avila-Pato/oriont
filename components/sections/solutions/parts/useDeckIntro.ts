@@ -2,8 +2,7 @@ import { useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { SKIP_INTRO_EVENT, getLenis, setWheelLimit } from "@/components/layout/SmoothScroll";
-import { STEP_DUR, STEP_DUR_FAST } from "./constants";
+import { SKIP_INTRO_EVENT, getLenis } from "@/components/layout/SmoothScroll";
 
 
 
@@ -134,44 +133,11 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
             // aparece casi al tiro (es una carta que entra, no un fantasma que se materializa)
             .from(card, { autoAlpha: 0, ease: "none", duration: 0.1 }, k);
         });
-        tl.to({}, { duration: 0.3 }); // pausa con el mazo completo antes de soltar la sección
 
      
-        let target = 0; // paso que pide el scroll: cuántas cartas (además de la 01) deben estar arriba
-        let at = 0; // paso hacia el que va la animación
-        let animating = false;
-        // un giro hacia abajo que llegó al tope mientras la 05 subía: se aplica al aterrizar
-        let pendingLeave = false;
-        /** El mazo sigue a la rueda, en los dos sentidos: cada cambio de paso lanza UN tween hacia
-         *  él. Un paso (giro lento) = una carta en STEP_DUR; varios de golpe (giro rápido o grande)
-         *  = todas esas cartas barajadas en STEP_DUR_FAST. Al subir se recogen igual. */
-        const advance = () => {
-          const dist = Math.abs(target - tl.time());
-          if (dist < 0.01) return;
-          at = target;
-          animating = true;
-          const many = dist > 1.2;
-          gsap.to(tl, {
-            time: at,
-            duration: many ? STEP_DUR_FAST : STEP_DUR,
-            // una carta: inOut suave (la carta ya trae su propia curva "out"); varias: arranca rápido
-            ease: many ? "power2.out" : "sine.inOut",
-            overwrite: true,
-            onComplete: () => {
-              animating = false;
-              // aterrizó la 05 con un giro guardado: la página sigue sola (sin pedir otro giro)
-              if (pendingLeave && at === cards.length - 1) {
-                pendingLeave = false;
-                const lenis = getLenis();
-                lenis?.scrollTo(lenis.targetScroll + 100);
-              }
-            },
-          });
-        };
-
-        /** Termina para siempre (índice o menú): se completa el mazo al tiro, se suelta el trigger y
-         *  se quita el espaciador, así la sección deja de fijarse. Con el scroll NO se llama: el mazo
-         *  queda atado a la rueda (al volver a subir se recoge, al bajar se reparte de nuevo). */
+        /** Termina para siempre: al pasar la 05 con el scroll, o al elegir una carta del índice / un
+         *  enlace del menú. Se completa el mazo, se suelta el trigger y se quita el espaciador, así la
+         *  sección deja de fijarse y la animación no se repite. */
         const ref: { st?: ScrollTrigger } = {};
         const finish = () => {
           if (played.current) return;
@@ -193,50 +159,39 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         const skip = () => finish();
         endRef.current = skip;
 
-        // si la página carga ya pasada la sección, onLeave corre dentro de create (antes de asignar)
+        // Mientras no termina, el mazo va ATADO al scroll (scrub directo): la posición de las cartas es la del scroll, así
+        // que siguen a la rueda tal cual (rápido o lento, bajando o subiendo) y la sección no puede
+        // irse con cartas a medio camino: terminan justo donde termina el recorrido. El recorrido
+        // (espaciador de 400 px) da 100 px por carta = un giro de rueda por carta. El suavizado lo
+        // pone Lenis (el scroll mismo); aquí no se agrega otro tween encima.
+        const steps = cards.length - 1;
+        let settle = 0;
         ref.st = ScrollTrigger.create({
           trigger: track.current,
           start: "top top", // la sección llega con la 01 puesta; la 02 sube al quedar fija
           end: "bottom bottom", // fin del recorrido reservado por el espaciador
           invalidateOnRefresh: true,
-          // por pasos: el recorrido se divide en un tramo por carta y apenas se entra a un tramo
-          // (un poquito de scroll) la carta sube completa sola, sin quedar a medio camino.
-          // Un tramo por carta, también para la 01: así se alcanza a leer antes de que suba la 02.
           onUpdate: (self) => {
-            // con Lenis se mira el DESTINO del scroll (lo que pidió el giro), no la posición actual:
-            // el scroll suave tarda ~0,4 s en recorrer el tramo y la carta esperaba. Así arranca
-            // en el cuadro siguiente al giro.
-            const lenis = getLenis();
-            const progress = lenis ? (lenis.targetScroll - self.start) / (self.end - self.start || 1) : self.progress;
-            const step = gsap.utils.clamp(0, cards.length - 1, Math.floor(progress * cards.length));
-            if (step === target) return;
-            target = step;
-            advance();
+            tl.time(self.progress * steps);
+            // quieto a mitad de una carta: se acomoda sola a la más cercana (corto, con Lenis)
+            clearTimeout(settle);
+            settle = window.setTimeout(() => {
+              const lenis = getLenis();
+              const st = ref.st;
+              if (!lenis || !st || played.current) return;
+              const len = st.end - st.start;
+              const p = (lenis.animatedScroll - st.start) / len;
+              if (p <= 0 || p >= 1) return;
+              const dest = st.start + (Math.round(p * steps) / steps) * len;
+              if (Math.abs(dest - lenis.animatedScroll) > 2) lenis.scrollTo(dest, { duration: 0.35 });
+            }, 180);
           },
-          // pasado el final queda todo arriba; al volver a subir el mazo se recoge con la rueda
-          onLeave: () => {
-            target = cards.length - 1;
-            advance();
-          },
-          onLeaveBack: () => {
-            target = 0;
-            advance();
-          },
+          // UNA sola vez: pasada la 05 el mazo queda completo para siempre, la sección deja de fijarse
+          // (se quita el espaciador, con el scroll compensado) y al volver a subir pasa normal
+          onLeave: () => finish(),
+          // subir antes de terminar: el mazo queda recogido y se puede volver a repartir
+          onLeaveBack: () => tl.time(0),
         });
-
-        // Tope SOLO al final del recorrido: entre cartas el scroll sigue fluido, pero la página no
-        // se va hasta que la última carta (05) terminó de subir (si no, con 80 px por carta la
-        // sección se iba con cartas aún en camino). Un giro dado contra el tope no se pierde: queda
-        // guardado (pendingLeave) y se aplica solo cuando la 05 aterriza → 1 giro = 1 paso.
-        const deckDone = () => played.current || (at === cards.length - 1 && !animating);
-        setWheelLimit(() => (deckDone() ? null : (ref.st?.end ?? null)));
-        // captura: corre antes que el manejador de Lenis, con el destino del giro anterior
-        const onWheel = (e: WheelEvent) => {
-          const lenis = getLenis();
-          const end = ref.st?.end;
-          if (e.deltaY > 0 && lenis && end != null && !deckDone() && lenis.targetScroll >= end - 1) pendingLeave = true;
-        };
-        window.addEventListener("wheel", onWheel, { capture: true, passive: true });
 
         // un enlace a otra sección (menú) la termina antes: al quitar el espaciador cambia el alto
         window.addEventListener(SKIP_INTRO_EVENT, skip);
@@ -244,8 +199,7 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         ScrollTrigger.refresh();
         return () => {
           endRef.current = null;
-          setWheelLimit(null);
-          window.removeEventListener("wheel", onWheel, { capture: true });
+          clearTimeout(settle);
           window.removeEventListener(SKIP_INTRO_EVENT, skip);
           if (!played.current) {
             setShown(null);

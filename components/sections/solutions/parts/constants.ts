@@ -7,10 +7,6 @@ export const DEPTH_DIM = 0.07; // cuánto se oscurece cada tarjeta de atrás
 export const CARD_H = 455; // alto de la tarjeta (px)
 export const SHUFFLE_OUT = 380; // ms del viaje de salida al barajar
 export const LAST = steps.length - 1;
-/** lo que tarda en subir cada carta (s) con un giro de rueda: fluido (con 0,05-0,08 saltaba) */
-export const STEP_DUR = 0.5;
-/** giro rápido o grande que pide varias cartas de una vez: todas se barajan en este tiempo total (s) */
-export const STEP_DUR_FAST = 0.6;
 /** 0 → "01" */
 export const pad = (i: number) => String(i + 1).padStart(2, "0");
 

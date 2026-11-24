@@ -85,8 +85,8 @@ export default function SolutionsSection() {
           <MobileGrid />
         </div>
       </section>
-      {/* recorrido de scroll de las cartas (solo escritorio): 400px / 5 cartas = 80px por carta, menos
-          que un giro de rueda (~100px): cada giro sube UNA carta (antes 100vh: ~2 giros por carta). Oculto de entrada: lo muestra
+      {/* recorrido de scroll de las cartas (solo escritorio): 400 px = 100 px por carta (de la 02 a la
+          05), un giro de rueda por carta; las cartas van atadas a este scroll. Oculto de entrada: lo muestra
           useDeckIntro solo si se llega a la sección desde arriba */}
       <div ref={spacer} aria-hidden className="hidden h-[400px]" />
     </div>
