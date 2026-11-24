@@ -183,8 +183,8 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
               const p = (lenis.animatedScroll - st.start) / len;
               if (p <= 0 || p >= 1) return;
               const dest = st.start + (Math.round(p * steps) / steps) * len;
-              if (Math.abs(dest - lenis.animatedScroll) > 2) lenis.scrollTo(dest, { duration: 0.35 });
-            }, 180);
+              if (Math.abs(dest - lenis.animatedScroll) > 2) lenis.scrollTo(dest, { duration: 0.15 }); 
+            }, 120);
           },
           // UNA sola vez: pasada la 05 el mazo queda completo para siempre, la sección deja de fijarse
           // (se quita el espaciador, con el scroll compensado) y al volver a subir pasa normal

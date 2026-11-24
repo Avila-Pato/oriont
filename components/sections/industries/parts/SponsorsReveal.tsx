@@ -20,7 +20,8 @@ const loadSplitText = () =>
   }));
 
 /**
- * Entrada de la sección Sponsors atada al scroll (scrub): avanza y retrocede con la rueda del mouse.
+ * Entrada de la sección Sponsors atada al scroll (scrub) la PRIMERA vez: avanza y retrocede con la
+ * rueda hasta completarse; después queda puesta y no se repite.
  * La línea del título se dibuja, las palabras suben tras una máscara y aparece el párrafo; los
  * logos (SponsorCircuit) entran una vez en ola, con transiciones CSS (cellEntrance.ts).
  * Solo transform/opacity (sin CLS). El contenido llega renderizado desde el servidor como children;
@@ -61,6 +62,16 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
                 start: "top 85%",
                 end: "top 15%",
                 scrub: 0.8, // segundos que tarda en "alcanzar" al scroll: suaviza la rueda
+                // UNA sola vez: terminada la entrada queda puesta y el trigger se suelta (al volver a
+                // pasar ya no se deshace ni se rehace). Antes de terminarla sí sigue a la rueda.
+                onLeave: (self) => {
+                  // primero se completa (el scrub puede venir atrasado) y recién después se suelta el
+                  // trigger, conservando la animación (2º argumento): kill() sin él la eliminaba y el
+                  // párrafo quedaba oculto
+                  self.getTween()?.kill();
+                  tl.progress(1);
+                  self.kill(false, true);
+                },
               },
             });
 
