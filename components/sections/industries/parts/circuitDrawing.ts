@@ -159,14 +159,18 @@ export const RING_STYLE = {
  * lo rasteriza una vez y después solo copia esa imagen. Dentro de la página como SVG, Firefox
  * volvía a dibujar cada trazo (con degradado) al repintar la zona.
  */
-export function stillRingsSvg() {
+export function stillRingsSvg({ raster = false } = {}) {
+  // raster (WebP): sin vector-effect. En una imagen de píxeles el grosor escala con la imagen, y el
+  // conversor (librsvg) interpretaba mal non-scaling-stroke y dejaba los arcos casi invisibles. Con
+  // el dibujo de 1500 de ancho mostrado a ~1600 px, el grosor queda prácticamente el mismo.
+  const ve = raster ? "" : ` vector-effect="non-scaling-stroke"`;
   const rings = DRAWING.rings
     .filter((ring) => !SPINNING.includes(ring.r))
     .map((ring) => {
       const sg = RING_STYLE.segs(ring.ghost);
       return (
-        `<path d="${ring.segs}" stroke-width="${sg.width}" opacity="${sg.opacity}" vector-effect="non-scaling-stroke"/>` +
-        `<path d="${ring.ticks}" stroke-width="${RING_STYLE.ticks.width}" opacity="${RING_STYLE.ticks.opacity}" vector-effect="non-scaling-stroke"/>` +
+        `<path d="${ring.segs}" stroke-width="${sg.width}" opacity="${sg.opacity}"${ve}/>` +
+        `<path d="${ring.ticks}" stroke-width="${RING_STYLE.ticks.width}" opacity="${RING_STYLE.ticks.opacity}"${ve}/>` +
         `<path d="${ring.dots}" fill="${COLORS.navy}" stroke="none" opacity="${RING_STYLE.dots.opacity}"/>`
       );
     })

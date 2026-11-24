@@ -374,7 +374,8 @@ export default function AboutSection() {
               data-orbit-card
               // z-30! le gana al zIndex en línea que pone GSAP cuando las tarjetas forman la fila
               // group/card: este contenedor (tamaño normal) es el que recibe el hover, no la tarjeta agrandada
-              className="group/card absolute z-10 w-[clamp(130px,min(13vw,23svh),310px)] -translate-x-1/2 -translate-y-1/2 hover:z-30!"
+              // will-change-transform: el scroll las mueve (scrub); con capa propia no se repintan en cada cuadro
+              className="group/card absolute z-10 will-change-transform w-[clamp(130px,min(13vw,23svh),310px)] -translate-x-1/2 -translate-y-1/2 hover:z-30!"
               style={{
                 // redondeado: servidor y navegador dan decimales distintos y React avisa de un desajuste
                 left: `${(50 + Math.cos(rad) * RADIUS_X).toFixed(3)}%`,
@@ -436,17 +437,20 @@ export default function AboutSection() {
 
       {/* capa de pantalla completa: la imagen del centro se abre y muestra el formulario (solo escritorio) */}
       <div ref={expand} className="invisible absolute inset-0 z-30 overflow-hidden max-lg:hidden">
-        {/* tamaño y posición los pone layout (proporción de la foto destacada, cubriendo la sección) */}
-        <div ref={expandImg} className="absolute inset-0">
+        {/* tamaño y posición los pone layout (proporción de la foto destacada, cubriendo la sección).
+            will-change (aquí, en el velo y en el formulario): la apertura los escala/funde/sube por
+            JS; con capa propia la GPU solo los mueve, sin redibujar la foto a pantalla completa ni
+            la sombra difuminada del formulario en cada cuadro (la mitad de GPU al abrir y cerrar) */}
+        <div ref={expandImg} className="absolute inset-0 will-change-transform">
           <ExpandSlides playing={slidesOn} />
         </div>
         {/* Velo y contenido parten ocultos por CSS (como CtaText): si solo los ocultaba GSAP, al
             recalcular ScrollTrigger (invalidateOnRefresh, resize, carga de fuentes) revertía los
             estilos y el formulario quedaba visible antes de tiempo, y luego "aparecía" otra vez. */}
-        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/80 to-navy/45 opacity-0" />
+        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/80 to-navy/45 opacity-0 will-change-[opacity]" />
         <div
           data-expand-content
-          className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 short:pb-4 short:pt-24 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0"
+          className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 short:pb-4 short:pt-24 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0 [&>*]:will-change-transform"
         >
           <ContactIntro />
           <ContactForm className="max-w-[640px] justify-self-end 2xl:max-w-[760px]" />

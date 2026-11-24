@@ -181,7 +181,8 @@ export default function SponsorCircuit() {
           traces[i].setAttribute("d", toFirstRing(DRAWING.nodes[i], Math.random() * 2 - 1));
           gsap
             .timeline({ onComplete: () => busy.delete(i) })
-            .set([traces[i], sparks[i]], { opacity: 1 })
+            // el SVG de las señales va oculto (visibility): solo se muestra la que está corriendo
+            .set([traces[i], sparks[i]], { opacity: 1, visibility: "visible" })
             .fromTo(traces[i], { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 0.7, ease: "power2.inOut" })
             .to(
               sparks[i],
@@ -189,7 +190,8 @@ export default function SponsorCircuit() {
               0,
             )
             .to(sparks[i], { opacity: 0, duration: 0.2 })
-            .to(traces[i], { opacity: 0, duration: 0.8 }, "+=0.3");
+            .to(traces[i], { opacity: 0, duration: 0.8 }, "+=0.3")
+            .set([traces[i], sparks[i]], { visibility: "hidden" });
         };
         const enter = cells.map((c, i) => {
           const fn = () => signal(i);
@@ -250,22 +252,25 @@ export default function SponsorCircuit() {
               </svg>
             </div>
           ))}
-      {/* anillos quietos: imagen (/sponsor-circuit.svg, generada en el build desde la misma
-          geometría). Como <img> el navegador la rasteriza una vez y solo la copia; como SVG en la
-          página Firefox volvía a dibujar cada trazo con degradado al repintar. lazy: en celular el
+      {/* anillos quietos: imagen de píxeles (/sponsor-circuit.webp, generada en el build desde la misma
+          geometría). Al ser píxeles, volver a mostrarla es solo copiarla; como SVG (en la página o
+          como <img> .svg) cada vuelta a la pantalla había que rasterizar todos los trazos con degradado. lazy: en celular el
           abanico está oculto y no se descarga */}
       {/* eslint-disable-next-line @next/next/no-img-element -- SVG generado: next/image no aporta nada */}
       <img
         data-art-still
-        src="/sponsor-circuit.svg"
+        src="/sponsor-circuit.webp"
         alt=""
         loading="lazy"
         decoding="async"
         draggable={false}
         className="absolute inset-0 size-full select-none"
       />
-      {/* degradado que usan los anillos que giran + señales de cada logo */}
-      <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-hidden">
+      {/* degradado que usan los anillos que giran + señales de cada logo. Oculto (visibility): con
+          los 46 trazos/puntos invisibles igual se rasterizaba la capa entera cada vez que la sección
+          volvía a la pantalla (~110 ms de GPU al subir). La señal en curso se muestra sola (los
+          hijos con visibility:visible se ven aunque el SVG esté oculto) */}
+      <svg viewBox={`0 0 ${W} ${H}`} className="invisible absolute inset-0 size-full overflow-hidden">
         <defs>
           {/* se desvanece hacia afuera */}
           <radialGradient
