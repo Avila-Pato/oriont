@@ -107,10 +107,12 @@ export default function Navbar() {
       >
         {/* cápsula azul: envuelve los enlaces y al bajar se estira hasta el botón */}
         {box && area && (
-          // la sombra va en el contenedor (drop-shadow sigue la forma recortada)
+          // la sombra va en el contenedor (drop-shadow sigue la forma recortada).
+          // will-change: capa propia. Si no, compartía capa con los enlaces y cada repintado de ellos
+          // (indicador que se desliza, color del texto) volvía a calcular esta sombra difuminada
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute hidden drop-shadow-[0_14px_16px_rgba(33,37,92,0.35)] lg:block"
+            className="pointer-events-none absolute hidden drop-shadow-[0_14px_16px_rgba(33,37,92,0.35)] will-change-transform lg:block"
             style={{ left: area.left, top: area.top, width: area.right - area.left, height: area.bottom - area.top }}
           >
             <span
@@ -225,8 +227,10 @@ export default function Navbar() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
-            // misma cápsula blanca que el logo al bajar (antes un círculo azul marino macizo)
-            className="relative grid h-14 w-14 place-items-center rounded-full border border-navy/10 bg-white/85 shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] backdrop-blur-xl lg:hidden"
+            // misma cápsula blanca que el logo al bajar (antes un círculo azul marino macizo).
+            // Blanco sólido, sin backdrop-blur (igual que el logo): el botón es fijo y el desenfoque
+            // se recalculaba en cada cuadro de scroll en el celular; al 85 % casi no se notaba
+            className="relative grid h-14 w-14 place-items-center rounded-full border border-navy/10 bg-white shadow-[0_8px_30px_-12px_rgba(33,37,92,0.3)] lg:hidden"
           >
             <span className="relative block h-3 w-4">
               <span

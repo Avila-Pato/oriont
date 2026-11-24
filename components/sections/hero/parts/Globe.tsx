@@ -160,6 +160,10 @@ export default function Globe({ className = "", active = null, focus = null, onH
     let w = 0;
     let h = 0;
     let dpr = 1;
+    // sombra del piso: el degradado no depende del tamaño (se escala al dibujarlo)
+    const FLOOR = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    FLOOR.addColorStop(0, "rgba(33,37,92,0.22)");
+    FLOOR.addColorStop(1, "rgba(33,37,92,0)");
     // El tamaño llega del ResizeObserver (ya calculado tras el layout): antes se llamaba a
     // getBoundingClientRect en el montaje, lo que forzaba un reflow síncrono recién hidratado.
     // El primer callback llega antes del primer paint, así que no se ve un frame vacío.
@@ -472,17 +476,15 @@ export default function Globe({ className = "", active = null, focus = null, onH
       // posición en pantalla del frente de escaneo durante la entrada
       const frontY = cy - frontN * R;
 
-      // sombra en el piso
+      // sombra en el piso: degradado de radio 1 creado una sola vez (FLOOR) y escalado al radio
+      // actual, en vez de crear uno nuevo en cada cuadro
       ctx.save();
       ctx.globalAlpha = scan;
       ctx.translate(cx, cy + R * 1.06);
-      ctx.scale(1, 0.12);
-      const floor = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 0.8);
-      floor.addColorStop(0, "rgba(33,37,92,0.22)");
-      floor.addColorStop(1, "rgba(33,37,92,0)");
-      ctx.fillStyle = floor;
+      ctx.scale(R * 0.8, R * 0.8 * 0.12);
+      ctx.fillStyle = FLOOR;
       ctx.beginPath();
-      ctx.arc(0, 0, R * 0.8, 0, Math.PI * 2);
+      ctx.arc(0, 0, 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 

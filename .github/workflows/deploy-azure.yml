@@ -46,11 +46,15 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
-      # el servidor standalone no incluye public/ ni .next/static: se copian a su lado
+      # el servidor standalone no incluye public/ ni .next/static: se copian a su lado.
+      # @img: binarios nativos de sharp (optimizador de imágenes de next/image). El rastreo de
+      # archivos de Next copia el .node pero no las librerías de libvips de las que depende; si
+      # faltan, sharp no carga y Next sirve cada foto en su tamaño ORIGINAL sin avisar
       - name: Armar paquete
         run: |
           cp -r public .next/standalone/
           cp -r .next/static .next/standalone/.next/
+          cp -r node_modules/@img .next/standalone/node_modules/
           cd .next/standalone && zip -qr ../../site.zip .
 
       - uses: actions/upload-artifact@v4

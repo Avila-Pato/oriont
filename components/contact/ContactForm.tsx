@@ -365,10 +365,12 @@ export default function ContactForm({ className = "" }: { className?: string }) 
     }`;
   // Etiqueta: en reposo, dentro del campo a la altura del texto; con foco o texto escrito sube y
   // se posa sobre el borde de arriba (fondo blanco que corta la línea), más chica y en color.
-  // Se anima `top` de un elemento absoluto: no mueve nada más de la página.
+  // Solo transform (translate + scale, desde la izquierda): sube lo mismo que medía `top` (22 px,
+  // 26 en 2xl) y se achica en la misma proporción que el tamaño de letra (11/14, 12/16). Antes
+  // animaba `top` y `font-size`, y eso recalculaba el layout en cada cuadro de la transición.
   const label = (bad: boolean) =>
-    `pointer-events-none absolute left-3 top-[22px] flex -translate-y-1/2 items-center gap-1 bg-white px-1 text-[14px] leading-none transition-all duration-200 ease-out 2xl:top-[26px] 2xl:text-[16px]
-     peer-focus:top-0 peer-focus:text-[11px] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-[11px] 2xl:peer-focus:top-0 2xl:peer-focus:text-[12px] 2xl:peer-[:not(:placeholder-shown)]:top-0 2xl:peer-[:not(:placeholder-shown)]:text-[12px] ${
+    `pointer-events-none absolute left-3 top-[22px] flex origin-left -translate-y-1/2 items-center gap-1 bg-white px-1 text-[14px] leading-none transition-[translate,scale,color] duration-200 ease-out 2xl:top-[26px] 2xl:text-[16px]
+     peer-focus:translate-y-[calc(-50%-22px)] peer-focus:scale-[0.7857] peer-[:not(:placeholder-shown)]:translate-y-[calc(-50%-22px)] peer-[:not(:placeholder-shown)]:scale-[0.7857] 2xl:peer-focus:translate-y-[calc(-50%-26px)] 2xl:peer-focus:scale-75 2xl:peer-[:not(:placeholder-shown)]:translate-y-[calc(-50%-26px)] 2xl:peer-[:not(:placeholder-shown)]:scale-75 ${
        bad ? "text-danger" : "text-navy/70 peer-focus:text-accent-ink"
      }`;
 

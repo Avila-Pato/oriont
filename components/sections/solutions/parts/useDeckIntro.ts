@@ -106,6 +106,11 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         }
         sp.style.display = "block";
         const cards = gsap.utils.toArray<HTMLElement>("[data-vc-card]");
+        // capa propia SOLO mientras se reparte: el scroll las mueve en cada cuadro y sin capa se
+        // redibujaban enteras (~130 ms de dibujo en el reparto → ~25 ms). Se quita al terminar, así
+        // el barajado posterior (que cambia su tamaño) no queda con una imagen a menor resolución
+        gsap.set(cards, { willChange: "transform" });
+        const dropLayers = () => gsap.set(cards, { clearProps: "willChange" });
         const tl = gsap.timeline({
           paused: true,
           // el índice acompaña al mismo tiempo: se marca la carta apenas empieza a subir (la carta k
@@ -143,7 +148,7 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           if (played.current) return;
           played.current = true;
           ref.st?.kill();
-          gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true });
+          gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true, onComplete: dropLayers });
           setShown(null);
           const sec = root.current;
           if (!sec) return;
@@ -202,6 +207,7 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
           clearTimeout(settle);
           window.removeEventListener(SKIP_INTRO_EVENT, skip);
           if (!played.current) {
+            dropLayers();
             setShown(null);
             sp.style.display = "";
           }

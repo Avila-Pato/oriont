@@ -14,7 +14,7 @@ const IDLE_EVERY = 3000; // antes 1300: el nombre de SponsorLive quedaba animán
 const HOLD = 1100;
 
 /**
- * Enciende logos al azar con su color de marca (marca la celda con data-on; el color y la
+ * Enciende logos EN ORDEN (el de la lista de sponsors: 1, 2, 3… y vuelve a empezar) con su color de marca (marca la celda con data-on; el color y la
  * transición los pone SponsorLogo con CSS):
  * - mientras se hace scroll sobre la grilla, seguido
  * - con la grilla en pantalla y sin scroll, de a uno cada tanto
@@ -31,7 +31,11 @@ export default function SponsorScrollColor() {
     const visible = () =>
       grids.find((g) => g.classList.contains("lg:hidden") !== desktop.matches) ?? grids[0];
     let grid = visible();
-    const cellsOf = (g: HTMLElement) => Array.from(g.querySelectorAll<HTMLElement>("[data-logo-cell]"));
+    // ordenadas por su número de sponsor (en el abanico el DOM va por anillos, no por la lista)
+    const cellsOf = (g: HTMLElement) =>
+      Array.from(g.querySelectorAll<HTMLElement>("[data-logo-cell]")).sort(
+        (a, b) => Number(a.dataset.sponsor) - Number(b.dataset.sponsor),
+      );
     let cells = cellsOf(grid);
     const timers = new Map<HTMLElement, number>();
     let last = 0;
@@ -48,13 +52,9 @@ export default function SponsorScrollColor() {
         cells = cellsOf(g);
         prev = -1;
       }
-      // al azar, sin repetir el anterior ni uno que ya está encendido (todos los logos están a la
-      // vista: ya no hay cintas que se salgan de pantalla, así que no hace falta medirlos)
-      const free = cells
-        .map((_, i) => i)
-        .filter((i) => i !== prev && !cells[i].hasAttribute("data-on"));
-      if (!free.length) return;
-      const i = free[Math.floor(Math.random() * free.length)];
+      // el siguiente de la lista (de 1 en 1)
+      if (!cells.length) return;
+      const i = (prev + 1) % cells.length;
       prev = i;
       const cell = cells[i];
       cell.setAttribute("data-on", "");

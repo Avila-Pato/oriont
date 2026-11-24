@@ -15,7 +15,7 @@ import logoDental from "@/public/images/Logo_DentalAssist.webp";
 
 import { CELL_ENTRANCE } from "./cellEntrance";
 import SponsorLogo from "./SponsorLogo";
-import { W, H, C, R_MAX, HUBS, SPIN_SPEED, SPINNING, AWAKE_MS, toFirstRing, DRAWING, RING_STYLE } from "./circuitDrawing";
+import { W, H, C, HUBS, SPIN_SPEED, SPIN_PAD, SPINNING, AWAKE_MS, toFirstRing, DRAWING } from "./circuitDrawing";
 import { COLORS } from "@/data/colors";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -70,6 +70,9 @@ export default function SponsorCircuit() {
   useGSAP(
     () => {
       if (!near) return;
+      // imágenes del abanico decodificadas por adelantado (la sección está a una pantalla): si no,
+      // se decodificaban y subían a la GPU justo en el cuadro en que aparecían (tirón)
+      root.current?.querySelectorAll<HTMLImageElement>("[data-art] img").forEach((img) => img.decode().catch(() => {}));
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const q = gsap.utils.selector(root);
@@ -212,20 +215,15 @@ export default function SponsorCircuit() {
     { scope: root, dependencies: [near], revertOnUpdate: true },
   );
 
-  const ringPaths = (ring: (typeof DRAWING.rings)[number]) => (
-    <>
-      <path d={ring.segs} strokeWidth={RING_STYLE.segs(ring.ghost).width} opacity={RING_STYLE.segs(ring.ghost).opacity} vectorEffect="non-scaling-stroke" />
-      <path d={ring.ticks} strokeWidth={RING_STYLE.ticks.width} opacity={RING_STYLE.ticks.opacity} vectorEffect="non-scaling-stroke" />
-      <path d={ring.dots} fill={COLORS.navy} stroke="none" opacity={RING_STYLE.dots.opacity} />
-    </>
-  );
 
   return (
     <div ref={root} className="relative hidden aspect-[1500/600] w-full [--logo-h:26px] lg:block xl:[--logo-h:32px]">
       {/* todo el dibujo (la entrada lo hace crecer apenas y aparecer anillo por anillo) */}
       <div data-art aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* anillos que giran: cada uno en su capa (cuadrado de 2r centrado en C) rotada por CSS.
-            Usan el degradado del SVG de abajo (centrado en C: girar no lo cambia) */}
+        {/* anillos que giran: cada uno en su capa (cuadrado de 2·(r + SPIN_PAD) centrado en C) rotada
+            por CSS. Son imágenes WebP (/sponsor-ring-<r>.webp, generadas en el build desde la misma
+            geometría): como SVG, la primera vez la GPU tenía que dibujar todos sus trazos y se
+            notaba un tirón al acercarse a la sección */}
         {DRAWING.rings
           .filter((ring) => SPINNING.includes(ring.r))
           .map((ring, i) => (
@@ -235,21 +233,25 @@ export default function SponsorCircuit() {
               className="absolute"
               style={
                 {
-                  left: pctX(C.x - ring.r),
-                  top: pctY(C.y - ring.r),
-                  width: pctX(ring.r * 2),
-                  height: pctY(ring.r * 2),
+                  left: pctX(C.x - ring.r - SPIN_PAD),
+                  top: pctY(C.y - ring.r - SPIN_PAD),
+                  width: pctX((ring.r + SPIN_PAD) * 2),
+                  height: pctY((ring.r + SPIN_PAD) * 2),
                   // misma velocidad en el borde (los grandes giran más lento), sentidos alternos
                   "--spin-dur": `${Math.round((2 * Math.PI * ring.r) / SPIN_SPEED)}s`,
                   animationDirection: i % 2 ? "reverse" : "normal",
                 } as CSSProperties
               }
             >
-              <svg viewBox={`${C.x - ring.r} ${C.y - ring.r} ${ring.r * 2} ${ring.r * 2}`} className="size-full overflow-visible">
-                <g fill="none" stroke="url(#sponsor-circuit-fade)" strokeLinecap="round">
-                  {ringPaths(ring)}
-                </g>
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element -- imagen generada: next/image no aporta nada */}
+              <img
+                src={`/sponsor-ring-${ring.r}.webp`}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                className="size-full select-none"
+              />
             </div>
           ))}
       {/* anillos quietos: imagen de píxeles (/sponsor-circuit.webp, generada en el build desde la misma
@@ -266,25 +268,11 @@ export default function SponsorCircuit() {
         draggable={false}
         className="absolute inset-0 size-full select-none"
       />
-      {/* degradado que usan los anillos que giran + señales de cada logo. Oculto (visibility): con
+      {/* señales de cada logo. Oculto (visibility): con
           los 46 trazos/puntos invisibles igual se rasterizaba la capa entera cada vez que la sección
           volvía a la pantalla (~110 ms de GPU al subir). La señal en curso se muestra sola (los
           hijos con visibility:visible se ven aunque el SVG esté oculto) */}
       <svg viewBox={`0 0 ${W} ${H}`} className="invisible absolute inset-0 size-full overflow-hidden">
-        <defs>
-          {/* se desvanece hacia afuera */}
-          <radialGradient
-            id="sponsor-circuit-fade"
-            gradientUnits="userSpaceOnUse"
-            cx={0}
-            cy={0}
-            r={R_MAX}
-            gradientTransform={`translate(${C.x} ${C.y})`}
-          >
-            <stop offset="0.55" stopColor={COLORS.navy} />
-            <stop offset="1" stopColor={COLORS.navy} stopOpacity="0" />
-          </radialGradient>
-        </defs>
         {/* señales: ocultas hasta que su logo se enciende */}
         <g fill="none" stroke={COLORS.accent} strokeWidth={1.6} strokeLinecap="round">
           {DRAWING.nodes.map((n, i) => (

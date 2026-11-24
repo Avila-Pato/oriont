@@ -253,7 +253,9 @@ export default function AboutSection() {
               // scroll que dura la parte 2 (en altos de pantalla). Si se cambia, ajustar el alto
               // de `track` (140vh)
               end: () => `+=${window.innerHeight * SCRUB_VH}`,
-              scrub: 1, // suavidad respecto a la rueda: más alto = la animación alcanza al scroll con más inercia (más fluido)
+              // segundos que tarda en alcanzar al scroll. Con 1 se sentía un retraso al entrar a la
+              // sección (las tarjetas arrancaban tarde respecto de la rueda); 0,5 sigue suave
+              scrub: 0.5,
               invalidateOnRefresh: true,
             },
           })
@@ -396,7 +398,9 @@ export default function AboutSection() {
         })}
 
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <div data-stage-text className="pointer-events-auto">
+          {/* will-change: el scroll lo desvanece, sube y achica (scrub). Sin capa propia se
+              redibujaban sus letras grandes en cada cuadro (~40 ms de dibujo al subir desde aquí) */}
+          <div data-stage-text className="pointer-events-auto will-change-[transform,opacity]">
             <AboutText />
           </div>
         </div>
@@ -447,7 +451,7 @@ export default function AboutSection() {
         {/* Velo y contenido parten ocultos por CSS (como CtaText): si solo los ocultaba GSAP, al
             recalcular ScrollTrigger (invalidateOnRefresh, resize, carga de fuentes) revertía los
             estilos y el formulario quedaba visible antes de tiempo, y luego "aparecía" otra vez. */}
-        <div data-expand-shade className="absolute inset-0 bg-gradient-to-r from-navy/95 via-navy/80 to-navy/45 opacity-0 will-change-[opacity]" />
+        <div data-expand-shade className="absolute inset-0 bg-linear-to-r/srgb from-navy/95 via-navy/80 to-navy/45 opacity-0 will-change-[opacity]" />
         <div
           data-expand-content
           className="container-page relative grid h-full grid-cols-[1.05fr_1fr] items-center gap-12 pb-8 pt-28 short:pb-4 short:pt-24 xl:gap-20 2xl:gap-28 [&>*]:invisible [&>*]:opacity-0 [&>*]:will-change-transform"
@@ -566,7 +570,8 @@ function AboutText() {
 
 /** hidden: en escritorio parte invisible y GSAP lo muestra al hacer scroll. */
 function CtaText({ hidden = false }: { hidden?: boolean }) {
-  const start = hidden ? "invisible opacity-0" : "";
+  // en escritorio (hidden) cada línea entra con el scroll: con capa propia no se redibuja en cada cuadro
+  const start = hidden ? "invisible opacity-0 will-change-[transform,opacity]" : "";
   return (
     <div className="flex max-w-[860px] flex-col items-center text-center 2xl:max-w-[1100px]">
       <h3

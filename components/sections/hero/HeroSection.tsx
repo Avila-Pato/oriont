@@ -1,11 +1,14 @@
 import { HERO_COPY } from "@/data/hero";
 import HeroGallery from "./parts/HeroGallery";
 import HeroGlobe from "./parts/HeroGlobe";
+import HeroBlurGate from "./parts/HeroBlurGate";
 
 export default function HeroSection() {
   return (
     // --cw: ancho de la tarjeta de texto por breakpoint (lo usan la tarjeta y el cálculo del globo)
     <section className="relative flex min-h-[100svh] w-full flex-col items-center px-4 pb-12 pt-16 sm:px-8 sm:pt-24 lg:block lg:p-0 lg:[--cw:360px] xl:[--cw:380px] 2xl:[--cw:410px]">
+      {/* apaga el desenfoque del panel cuando la sección ya va saliendo (ver HeroBlurGate) */}
+      <HeroBlurGate />
       <div className="pointer-events-none absolute inset-0 mx-auto hidden max-w-[1680px] lg:block">
         <HeroGallery />
       </div>
@@ -21,7 +24,7 @@ export default function HeroSection() {
       <div className="relative z-20 mt-10 w-full max-w-[520px] lg:absolute lg:left-[max(2.5%,calc(50%-800px))] lg:top-1/2 lg:mt-0 lg:w-auto lg:max-w-none lg:-translate-y-1/2">
         <div className="rounded-3xl border border-white bg-white/75 p-6 ring-1
          ring-navy/[0.06] sm:p-7 lg:w-(--cw)
-        xl:p-7 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.35)] backdrop-blur-md lg:p-8">
+        xl:p-7 shadow-[0_30px_60px_-30px_rgba(33,37,92,0.35)] backdrop-blur-md in-data-noblur:backdrop-blur-none lg:p-8">
 
           <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink xl:text-[12px]">
             <span className="h-px w-6 bg-accent xl:w-8" />

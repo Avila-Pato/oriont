@@ -182,3 +182,26 @@ export function stillRingsSvg({ raster = false } = {}) {
     `<g fill="none" stroke="url(#f)" stroke-linecap="round">${rings}</g></svg>`
   );
 }
+
+/** margen alrededor de un anillo que gira: los conectores salen hasta r + 58 (+ el punto) */
+export const SPIN_PAD = 70;
+
+/**
+ * Un anillo que gira como SVG suelto (para generar su imagen WebP): cuadrado de 2·(r + SPIN_PAD)
+ * centrado en C, en marino sólido (a estos radios el degradado del dibujo todavía es sólido) y
+ * sin vector-effect (en píxeles el grosor escala con la imagen, como en stillRingsSvg).
+ */
+export function spinRingSvg(r: number) {
+  const ring = DRAWING.rings.find((x) => x.r === r);
+  if (!ring) throw new Error(`anillo ${r} no existe`);
+  const R = r + SPIN_PAD;
+  const sg = RING_STYLE.segs(ring.ghost);
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${C.x - R} ${C.y - R} ${R * 2} ${R * 2}" width="${R * 2}" height="${R * 2}">` +
+    `<g fill="none" stroke="${COLORS.navy}" stroke-linecap="round">` +
+    `<path d="${ring.segs}" stroke-width="${sg.width}" opacity="${sg.opacity}"/>` +
+    `<path d="${ring.ticks}" stroke-width="${RING_STYLE.ticks.width}" opacity="${RING_STYLE.ticks.opacity}"/>` +
+    `<path d="${ring.dots}" fill="${COLORS.navy}" stroke="none" opacity="${RING_STYLE.dots.opacity}"/>` +
+    `</g></svg>`
+  );
+}

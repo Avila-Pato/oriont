@@ -13,8 +13,8 @@ const MIN_GAP = 2500;
 
 /**
  * Junto al título: "Conectados con Oriont" y el nombre de la marca que está encendida en el muro
- * (la que enciende SponsorScrollColor al azar, o la que está bajo el cursor), con su industria y su
- * número. El nombre cambia subiendo tras una máscara (como los títulos de la web). Escucha el atributo data-on de las celdas
+ * (SponsorScrollColor las enciende en orden, o la que está bajo el cursor), con su industria.
+ * Avanza de 1 en 1: si con scroll se encienden varias seguidas, igual pasa a la SIGUIENTE (no salta). El nombre cambia subiendo tras una máscara (como los títulos de la web). Escucha el atributo data-on de las celdas
  * [data-logo-cell][data-sponsor] de la sección: no enciende nada por su cuenta.
  * Alto fijo (una línea de nombre): los cambios de texto no mueven nada (sin CLS).
  */
@@ -27,7 +27,6 @@ export default function SponsorLive() {
       const section = el.closest("section") ?? document.body;
       const nameEl = el.querySelector<HTMLElement>("[data-live-name]")!;
       const indEl = el.querySelector<HTMLElement>("[data-live-industry]")!;
-      const numEl = el.querySelector<HTMLElement>("[data-live-num]")!;
       const barEl = el.querySelector<HTMLElement>("[data-live-bar]")!;
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -44,7 +43,6 @@ export default function SponsorLive() {
         shown = i;
         last = performance.now();
         const s = SPONSORS[i];
-        numEl.textContent = `${i + 1} de ${SPONSORS.length}`;
         if (reduce) {
           nameEl.textContent = s.name;
           indEl.textContent = s.industry;
@@ -74,9 +72,11 @@ export default function SponsorLive() {
           .to(barEl, { scaleX: (i + 1) / SPONSORS.length, duration: 0.8, ease: "power2.inOut" }, 0);
       };
 
-      // si se encienden varias seguidas, se muestra la última cuando pasa el mínimo
-      const request = (i: number) => {
+      // de 1 en 1: cada encendido avanza a la siguiente de la lista (si llegan varios seguidos,
+      // se espera el mínimo y se avanza UNA, sin saltarse marcas)
+      const request = () => {
         if (hovered !== null) return;
+        const i = (shown + 1) % SPONSORS.length;
         const wait = MIN_GAP - (performance.now() - last);
         if (wait <= 0) return show(i);
         pending = i;
@@ -94,7 +94,7 @@ export default function SponsorLive() {
           const cell = m.target as HTMLElement;
           // (SponsorScrollColor solo enciende los de la versión visible: no hace falta medir)
           if (!cell.hasAttribute("data-on")) continue;
-          request(Number(cell.dataset.sponsor));
+          request();
         }
       });
       section.querySelectorAll<HTMLElement>("[data-logo-cell][data-sponsor]").forEach((c) => {
@@ -137,11 +137,10 @@ export default function SponsorLive() {
           {SPONSORS[0].name}
         </p>
       </div>
-      <div className="mt-3 flex items-center justify-between text-[14px] text-navy/70">
+      <div className="mt-3 text-[14px]">
         <span data-live-industry className="font-medium text-accent-ink will-change-[opacity]">
           {SPONSORS[0].industry}
         </span>
-        <span data-live-num>{`1 de ${SPONSORS.length}`}</span>
       </div>
       {/* avance por las marcas: solo transform */}
       <div className="mt-3 h-px w-full bg-navy/10">
