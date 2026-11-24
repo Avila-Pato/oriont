@@ -88,7 +88,7 @@ export default function SolutionsSection() {
       {/* recorrido de scroll de las cartas (solo escritorio): 400 px = 100 px por carta (de la 02 a la
           05), un giro de rueda por carta; las cartas van atadas a este scroll. Oculto de entrada: lo muestra
           useDeckIntro solo si se llega a la sección desde arriba */}
-      <div ref={spacer} aria-hidden className="hidden h-[400px]" />
+      <div ref={spacer} aria-hidden className="hidden h-[600px]" />
     </div>
   );
 }
