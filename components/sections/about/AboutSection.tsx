@@ -17,6 +17,11 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const DESKTOP = "(min-width: 1024px)";
 
+/** corre `fn` en un momento libre del navegador (o casi al tiro si no hay requestIdleCallback) */
+const whenIdle = (fn: () => void) =>
+  window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 500 }) : window.setTimeout(fn, 60);
+const cancelIdle = (id: number) => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
+
 /** radios (en % del escenario) de la elipse donde van las tarjetas: así llenan cualquier pantalla */
 const RADIUS_X = 41;
 const RADIUS_Y = 38;
@@ -87,11 +92,17 @@ export default function AboutSection() {
   }, [near]);
 
   useGSAP(
-    () => {
+    (_, contextSafe) => {
       if (!near) return;
       const mm = gsap.matchMedia();
 
-      mm.add(DESKTOP, () => {
+      // Se arma en momentos libres y en DOS partes, fuera del render de React: armarlo todo junto
+      // dentro del efecto de React era UNA tarea de ~170 ms (con CPU lenta) justo mientras se veía
+      // Sponsors: cada tween lee los estilos actuales de su elemento y el navegador recalculaba
+      // estilos una y otra vez, y el scroll se trababa. Parte 1: entrada de las tarjetas.
+      // Parte 2 (otro momento libre): recorrido atado al scroll y apertura del formulario.
+      const build = contextSafe!(() =>
+      mm.add(DESKTOP, (ctx) => {
         const outers = gsap.utils.toArray<HTMLElement>("[data-orbit-card]");
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -119,6 +130,8 @@ export default function AboutSection() {
           });
         }
 
+        let removeLayout: (() => void) | undefined;
+        const part2 = () => ctx.add(() => {
         // 2) al seguir bajando: la sección queda fija, las tarjetas se ordenan abajo y aparece el llamado
         // 3) y luego la tarjeta del centro se agranda a pantalla completa con el formulario encima
         const W = () => stage.current?.clientWidth ?? window.innerWidth;
@@ -350,8 +363,19 @@ export default function AboutSection() {
           onLeaveBack: () => (reduce ? open.progress(0) : open.reverse()),
         });
 
-        return () => ScrollTrigger.removeEventListener("refreshInit", layout);
-      });
+        removeLayout = () => ScrollTrigger.removeEventListener("refreshInit", layout);
+        });
+        const id2 = whenIdle(part2);
+        return () => {
+          cancelIdle(id2);
+          removeLayout?.();
+        };
+      }));
+      const id = whenIdle(build);
+      return () => {
+        cancelIdle(id);
+        mm.revert();
+      };
     },
     { scope, dependencies: [near], revertOnUpdate: true },
   );

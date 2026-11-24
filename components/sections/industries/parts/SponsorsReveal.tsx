@@ -10,6 +10,11 @@ import { useNearViewport } from "@/hooks/useNearViewport";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
+/** corre `fn` en un momento libre del navegador (o casi al tiro si no hay requestIdleCallback) */
+const whenIdle = (fn: () => void) =>
+  window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 500 }) : window.setTimeout(fn, 60);
+const cancelIdle = (id: number) => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
+
 /** SplitText (~10 KB) solo lo usa esta entrada, más abajo en la página: se baja aparte (import
  *  dinámico) cuando la sección se acerca, no en la carga inicial */
 let splitLoading: Promise<typeof SplitTextPlugin> | null = null;
@@ -55,29 +60,37 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
             // encabezado quedaba vacío para el lector de pantalla.
             const split = SplitText.create("[data-reveal-title]", { type: "words", mask: "words" });
 
-            const tl = gsap.timeline({
-              defaults: { ease: "none" },
-              scrollTrigger: {
-                trigger: scope.current,
-                start: "top 85%",
-                end: "top 15%",
-                scrub: 0.8, // segundos que tarda en "alcanzar" al scroll: suaviza la rueda
-                // UNA sola vez: terminada la entrada queda puesta y el trigger se suelta (al volver a
-                // pasar ya no se deshace ni se rehace). Antes de terminarla sí sigue a la rueda.
-                onLeave: (self) => {
-                  // primero se completa (el scrub puede venir atrasado) y recién después se suelta el
-                  // trigger, conservando la animación (2º argumento): kill() sin él la eliminaba y el
-                  // párrafo quedaba oculto
-                  self.getTween()?.kill();
-                  tl.progress(1);
-                  self.kill(false, true);
+            // El timeline (con su ScrollTrigger) se arma en OTRO momento libre: armarlo junto con el
+            // SplitText era una tarea de ~70 ms (con CPU lenta) mientras se hacía scroll (cada tween
+            // lee los estilos de su elemento y el navegador recalcula). Partir las palabras no cambia
+            // cómo se ve, así que el título queda igual hasta que llega esta segunda parte.
+            const id2 = whenIdle(() =>
+              ctx.add(() => {
+              const tl = gsap.timeline({
+                defaults: { ease: "none" },
+                scrollTrigger: {
+                  trigger: scope.current,
+                  start: "top 85%",
+                  end: "top 15%",
+                  scrub: 0.8, // segundos que tarda en "alcanzar" al scroll: suaviza la rueda
+                  // UNA sola vez: terminada la entrada queda puesta y el trigger se suelta (al volver a
+                  // pasar ya no se deshace ni se rehace). Antes de terminarla sí sigue a la rueda.
+                  onLeave: (self) => {
+                    // primero se completa (el scrub puede venir atrasado) y recién después se suelta el
+                    // trigger, conservando la animación (2º argumento): kill() sin él la eliminaba y el
+                    // párrafo quedaba oculto
+                    self.getTween()?.kill();
+                    tl.progress(1);
+                    self.kill(false, true);
+                  },
                 },
-              },
-            });
+              });
 
-            tl.from("[data-reveal-line]", { scaleX: 0, transformOrigin: "0% 50%", duration: 0.3 }, 0)
-              .from(split.words, { yPercent: 110, duration: 0.4, stagger: 0.06, ease: "power2.out" }, 0.08)
-              .from("[data-reveal-text]", { opacity: 0, y: 24, duration: 0.4 }, 0.3);
+              tl.from("[data-reveal-line]", { scaleX: 0, transformOrigin: "0% 50%", duration: 0.3 }, 0)
+                .from(split.words, { yPercent: 110, duration: 0.4, stagger: 0.06, ease: "power2.out" }, 0.08)
+                .from("[data-reveal-text]", { opacity: 0, y: 24, duration: 0.4 }, 0.3);
+              }),
+            );
 
             // logos: entran una vez, en ola, con transiciones CSS (cellEntrance.ts): aquí solo se
             // marca la lista de la versión visible (escritorio: abanico · celular: grilla), sin
@@ -97,6 +110,7 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
             }
 
             return () => {
+              cancelIdle(id2);
               split.revert();
               // si se revierte antes de entrar (cambio de tamaño), los logos quedan a la vista
               if (grid?.dataset.cells === "out") delete grid.dataset.cells;
