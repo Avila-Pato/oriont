@@ -38,9 +38,9 @@ export default function SolutionsSection() {
   /** cambio limpio: la elegida se desvanece hacia la derecha mientras el mazo se reacomoda; ya
    *  invisible pasa adelante y entra desde la derecha. Nunca cruza visible por encima de otra. */
   const pick = (i: number) => {
-    // elegir mientras el mazo se arma con el scroll: primero se completa el mazo (si no, el índice
-    // seguía marcando la última que llegó y no la que quedaba al frente)
-    if (shown !== null && shown < steps.length) endIntro();
+    // elegir una carta deja el mazo fijo: se completa y se suelta de la rueda (si no, el índice
+    // seguía marcando la última que llegó, y al subir la rueda recogía el mazo con la elegida)
+    if (shown !== null) endIntro();
     if (i === front || busy.current) return;
     const next = i === LAST ? null : i;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {

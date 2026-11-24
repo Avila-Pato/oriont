@@ -90,11 +90,17 @@ export default function SponsorScrollColor() {
       light(IDLE_EVERY);
       idle = window.setTimeout(loop, IDLE_EVERY);
     };
-    const io = new IntersectionObserver((entries) => {
-      const e = entries.find((x) => x.target === visible()) ?? entries[0];
-      clearTimeout(idle);
-      if (e.isIntersecting) idle = window.setTimeout(loop, IDLE_EVERY);
-    });
+    // Solo con al menos un cuarto del muro a la vista: con apenas el borde asomando (en Nosotros
+    // quedan ~60 px arriba) el ciclo seguía encendiendo logos y SponsorLive animaba el nombre con
+    // GSAP (~65 escrituras de estilo/s y ~30 repintados/s en Firefox) sin que nadie lo viera.
+    const io = new IntersectionObserver(
+      (entries) => {
+        const e = entries.find((x) => x.target === visible()) ?? entries[0];
+        clearTimeout(idle);
+        if (e.isIntersecting && e.intersectionRatio >= 0.25) idle = window.setTimeout(loop, IDLE_EVERY);
+      },
+      { threshold: [0, 0.25] },
+    );
     grids.forEach((g) => io.observe(g));
 
     return () => {

@@ -105,6 +105,14 @@
   }
 }
 
+/* flecha "Scroll" de Nosotros: rebota solo mientras se ve. Oculta (clase `invisible` de inicio o
+   visibility:hidden que pone GSAP en ella o en su contenedor) la animación infinita seguía corriendo
+   y Firefox repintaba igual */
+[data-stage-arrow].invisible:not([style*="visibility: inherit"]) .animate-bounce,
+[style*="visibility: hidden"] .animate-bounce {
+  animation-play-state: paused;
+}
+
 /* globo del hero fuera de la vista (Globe pone data-paused en su contenedor): se congelan también
    sus animaciones CSS, no solo el canvas */
 [data-paused] * {

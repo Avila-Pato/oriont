@@ -142,51 +142,42 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
         let animating = false;
         // un giro hacia abajo que llegó al tope mientras la 05 subía: se aplica al aterrizar
         let pendingLeave = false;
-        /** De a una carta: con un scroll fuerte el paso pedido salta varios tramos, pero las cartas
-         *  igual suben una por una (rápido, encadenadas), cada una con su animación completa, hasta
-         *  alcanzarlo. El scroll nunca se frena: las cartas lo siguen. */
+        /** El mazo sigue a la rueda, en los dos sentidos: cada cambio de paso lanza UN tween hacia
+         *  él. Un paso (giro lento) = una carta en STEP_DUR; varios de golpe (giro rápido o grande)
+         *  = todas esas cartas barajadas en STEP_DUR_FAST. Al subir se recogen igual. */
         const advance = () => {
-          if (at === target) {
-            animating = false;
-            // aterrizó la 05 con un giro guardado: la página sigue sola (sin pedir otro giro)
-            if (pendingLeave && at === cards.length - 1) {
-              pendingLeave = false;
-              const lenis = getLenis();
-              lenis?.scrollTo(lenis.targetScroll + 100);
-            }
-            return;
-          }
+          const dist = Math.abs(target - tl.time());
+          if (dist < 0.01) return;
+          at = target;
           animating = true;
-          at += Math.sign(target - at);
-          // la última carta pedida sube con su tiempo completo y frena suave; si quedan más en
-          // cola (scroll fuerte), las de antes van más rápido para no quedar atrasadas
-          const last = at === target;
+          const many = dist > 1.2;
           gsap.to(tl, {
             time: at,
-            duration: last ? STEP_DUR : STEP_DUR_FAST,
-            // inOut suave: la carta ya trae su propia curva "out" (arriba); dos "out" sumados la disparaban al inicio
-            ease: last ? "sine.inOut" : "none",
+            duration: many ? STEP_DUR_FAST : STEP_DUR,
+            // una carta: inOut suave (la carta ya trae su propia curva "out"); varias: arranca rápido
+            ease: many ? "power2.out" : "sine.inOut",
             overwrite: true,
-            onComplete: advance,
+            onComplete: () => {
+              animating = false;
+              // aterrizó la 05 con un giro guardado: la página sigue sola (sin pedir otro giro)
+              if (pendingLeave && at === cards.length - 1) {
+                pendingLeave = false;
+                const lenis = getLenis();
+                lenis?.scrollTo(lenis.targetScroll + 100);
+              }
+            },
           });
         };
 
-        /** Termina para siempre: se completa el mazo, se suelta el trigger y se quita el
-         *  espaciador, para que al subir la sección pase normal (sin quedarse fija).
-         *  `gentle` (al salir con el scroll): las cartas que faltan siguen subiendo de a una, al
-         *  mismo ritmo, en vez de llegar todas juntas de golpe.
-         *  Sin `gentle` (índice o menú): al tiro, porque después viene otra animación o un salto. */
+        /** Termina para siempre (índice o menú): se completa el mazo al tiro, se suelta el trigger y
+         *  se quita el espaciador, así la sección deja de fijarse. Con el scroll NO se llama: el mazo
+         *  queda atado a la rueda (al volver a subir se recoge, al bajar se reparte de nuevo). */
         const ref: { st?: ScrollTrigger } = {};
-        const finish = (gentle = false) => {
+        const finish = () => {
           if (played.current) return;
           played.current = true;
           ref.st?.kill();
-          if (gentle) {
-            target = cards.length - 1;
-            if (!animating) advance();
-          } else {
-            gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true });
-          }
+          gsap.to(tl, { progress: 1, duration: 0.3, ease: "power1.out", overwrite: true });
           setShown(null);
           const sec = root.current;
           if (!sec) return;
@@ -220,13 +211,16 @@ export function useDeckIntro({ root, track, spacer }: Refs, near: boolean) {
             const step = gsap.utils.clamp(0, cards.length - 1, Math.floor(progress * cards.length));
             if (step === target) return;
             target = step;
-            // si ya hay una carta en camino, al terminar sigue sola hacia el nuevo paso
-            if (!animating) advance();
+            advance();
           },
-          // pasado el final se suelta para siempre (al subir ya no se repite)
-          onLeave: (self) => {
-            self.kill();
-            finish(true);
+          // pasado el final queda todo arriba; al volver a subir el mazo se recoge con la rueda
+          onLeave: () => {
+            target = cards.length - 1;
+            advance();
+          },
+          onLeaveBack: () => {
+            target = 0;
+            advance();
           },
         });
 

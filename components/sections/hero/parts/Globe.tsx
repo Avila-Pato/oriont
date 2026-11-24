@@ -49,7 +49,8 @@ function slerp(a: Vec, b: Vec, t: number): Vec {
   return [a[0] * k1 + b[0] * k2, a[1] * k1 + b[1] * k2, a[2] * k1 + b[2] * k2];
 }
 
-const CITIES = COUNTRIES.map((c) => ({ code: c.code, name: c.city, hq: !!c.hq, v: toVec(c.lat, c.lon) }));
+// `label` en mayúsculas ya calculado: no se rehace en cada cuadro
+const CITIES = COUNTRIES.map((c) => ({ code: c.code, name: c.city, label: c.city.toUpperCase(), hq: !!c.hq, v: toVec(c.lat, c.lon) }));
 // red radial: todas las rutas salen de la sede principal
 const HUB = Math.max(0, CITIES.findIndex((c) => c.hq));
 const SPOKES = CITIES.map((_, i) => i).filter((i) => i !== HUB);
@@ -134,6 +135,19 @@ export default function Globe({ className = "", active = null, focus = null, onH
     let freshLen = 0;
     const mono = getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono").trim();
     const monoFont = `${mono ? mono + ", " : ""}ui-monospace, monospace`;
+    // Fuentes de las etiquetas armadas una sola vez. Asignar ctx.font obliga al navegador a
+    // interpretar el texto de la fuente (en Firefox era ~40 ms en un recorrido): se asigna solo
+    // cuando cambia (setFont) y no una o dos veces por ciudad en cada cuadro.
+    const FONT_CITY = `500 11px ${monoFont}`;
+    const FONT_CITY_STRONG = `700 12px ${monoFont}`;
+    const FONT_HQ = `600 9px ${monoFont}`;
+    let lastFont = "";
+    const setFont = (f: string) => {
+      if (f !== lastFont) {
+        ctx.font = f;
+        lastFont = f;
+      }
+    };
 
     const arcs = ROUTES.map(({ pair: [i, j], main }, k) => {
       const a = CITIES[i].v;
@@ -905,6 +919,8 @@ export default function Globe({ className = "", active = null, focus = null, onH
       const pulse = (now * 0.0003) % 1; // una onda cada ~3,3 s (antes 1,7 s: se movía demasiado)
       ctx.textBaseline = "middle";
       ctx.textAlign = "right";
+      // un save/restore anterior pudo devolver otra fuente: se vuelve a asignar la primera vez
+      lastFont = "";
       for (const c of CITIES) {
         const q = rotate(c.v);
         if (q.z <= 0.05) continue;
@@ -953,11 +969,11 @@ export default function Globe({ className = "", active = null, focus = null, onH
         ctx.lineTo(x - gap - 20, y);
         ctx.stroke();
         const lx = x - gap - 26;
-        ctx.font = `${isActive || hq ? 700 : 500} ${isActive || hq ? 12 : 11}px ${monoFont}`;
+        setFont(isActive || hq ? FONT_CITY_STRONG : FONT_CITY);
         ctx.fillStyle = isActive || hq ? `rgba(${GLOW},${vis})` : `rgba(${LINE},${0.9 * vis})`;
-        ctx.fillText(c.name.toUpperCase(), lx, hq ? y - 6 : y);
+        ctx.fillText(c.label, lx, hq ? y - 6 : y);
         if (hq) {
-          ctx.font = `600 9px ${monoFont}`;
+          setFont(FONT_HQ);
           ctx.fillStyle = `rgba(${LINE},${0.6 * vis})`;
           ctx.fillText("SEDE PRINCIPAL", lx, y + 7);
         }

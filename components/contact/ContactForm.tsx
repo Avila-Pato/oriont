@@ -19,8 +19,11 @@ import { loadTurnstile, preconnectTurnstile } from "./turnstile";
  * Formulario de contacto. Envía JSON a la Azure Function (CONTACT_ENDPOINT) con el token de
  * Cloudflare Turnstile; la Function valida el token con su secret key antes de mandar el correo.
  *
- * Turnstile se carga recién cuando el formulario se acerca a la pantalla (IntersectionObserver):
- * no pesa en la carga inicial, y las copias ocultas (display:none) nunca cargan ni resuelven reto.
+ * Turnstile se carga recién cuando el usuario toca el formulario (foco o clic en cualquier campo):
+ * quien solo recorre la página no paga su descarga ni su script (~40 ms de layout y el iframe del
+ * reto). Al acercarse el formulario solo se abre la conexión con Cloudflare (preconnect), así que
+ * al tocarlo el script llega rápido; mientras se escribe se resuelve el reto. Si se envía antes de
+ * tener el token, el envío queda en espera y sale solo apenas llega.
  * El espacio del widget (65 px) queda reservado para que al aparecer no mueva nada.
  *
  * Validación propia (noValidate): mensajes en español bajo cada campo, al salir del campo
@@ -142,11 +145,14 @@ export default function ContactForm({ className = "" }: { className?: string }) 
     loadTime.current = Date.now();
   }, []);
 
-  // Turnstile (script + widget) recién cuando el formulario se acerca a pantalla. En el drawer
-  // cerrado (display: none) el elemento no intersecta, así que tampoco carga hasta abrirlo.
-  const near = useNearViewport(boxRef, "200px");
-  // con más margen solo se abre la conexión con Cloudflare: cuando llega a los 200 px, el script
-  // se descarga sin esperar DNS + TLS
+  // Turnstile (script + widget) recién al tocar el formulario (`wanted`)
+  const [wanted, setWanted] = useState(false);
+  const want = () => setWanted(true);
+  // envío pedido antes de que llegara el token: sale solo cuando llega (ver callback)
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitWhenToken = useRef(false);
+  // al acercarse el formulario solo se abre la conexión con Cloudflare: al tocarlo, el script se
+  // descarga sin esperar DNS + TLS
   const approaching = useNearViewport(boxRef, "1200px");
   useEffect(() => {
     if (approaching && TURNSTILE_SITE_KEY) preconnectTurnstile();
@@ -154,7 +160,7 @@ export default function ContactForm({ className = "" }: { className?: string }) 
 
   useEffect(() => {
     const el = boxRef.current;
-    if (!near || !el || !TURNSTILE_SITE_KEY) return;
+    if (!wanted || !el || !TURNSTILE_SITE_KEY) return;
     let cancelled = false;
 
     const load = () => {
@@ -175,6 +181,10 @@ export default function ContactForm({ className = "" }: { className?: string }) 
               tokenRef.current = token;
               setCaptchaFailed(false);
               setStatus((s) => (s === "captcha" ? "idle" : s));
+              if (submitWhenToken.current) {
+                submitWhenToken.current = false;
+                formRef.current?.requestSubmit();
+              }
             },
             "expired-callback": () => {
               log("Turnstile: el token venció (se pide otro)");
@@ -193,30 +203,16 @@ export default function ContactForm({ className = "" }: { className?: string }) 
         });
     };
 
-    // Se carga con el scroll quieto (QUIET_MS sin moverse): el script del reto (en el iframe de
-    // Cloudflare) tarda ~80 ms en evaluarse, y en Nosotros (escritorio) el formulario "se acerca"
-    // a mitad del recorrido animado de las tarjetas: cargarlo ahí cortaba la animación.
-    const QUIET_MS = 400;
-    let quiet = 0;
-    const arm = () => {
-      clearTimeout(quiet);
-      quiet = window.setTimeout(() => {
-        window.removeEventListener("scroll", arm);
-        if (!cancelled) load();
-      }, QUIET_MS);
-    };
-    window.addEventListener("scroll", arm, { passive: true });
-    arm();
+    // el usuario está tocando el formulario (no haciendo scroll): se carga al tiro
+    load();
 
     return () => {
       cancelled = true;
-      clearTimeout(quiet);
-      window.removeEventListener("scroll", arm);
       if (widgetRef.current) window.turnstile?.remove(widgetRef.current);
       widgetRef.current = null;
       tokenRef.current = null;
     };
-  }, [near]);
+  }, [wanted]);
 
   const check = (name: Name, value: string) => {
     const f = FIELDS.find((x) => x.name === name)!;
@@ -264,7 +260,10 @@ export default function ContactForm({ className = "" }: { className?: string }) 
       return;
     }
     if (!token) {
-      log("sin token de Turnstile todavía: no se envía");
+      // reto en curso (recién se tocó el formulario): el envío sale solo cuando llegue el token
+      log("sin token de Turnstile todavía: se envía apenas llegue");
+      want();
+      submitWhenToken.current = !captchaFailed;
       setStatus("captcha");
       return;
     }
@@ -345,12 +344,15 @@ export default function ContactForm({ className = "" }: { className?: string }) 
       : `Faltan completar o corregir ${errorCount} campos.`
     : {
         idle: <>También puedes escribirnos a {mailLink}.</>,
-        captcha: "Completa la verificación de seguridad antes de enviar.",
+        // sin fallo: el reto sigue resolviéndose y el envío sale solo al terminar (no es un error)
+        captcha: captchaFailed
+          ? "Completa la verificación de seguridad antes de enviar."
+          : "Verificando seguridad… tu mensaje se enviará en un momento.",
         sending: "Enviando tu mensaje…",
         sent: "¡Gracias! Recibimos tu mensaje y te responderemos pronto.",
         error: <>No pudimos enviar el mensaje. Intenta de nuevo o escríbenos a {mailLink}.</>,
       }[status];
-  const statusBad = errorCount > 0 || status === "captcha" || status === "error";
+  const statusBad = errorCount > 0 || (status === "captcha" && captchaFailed) || status === "error";
 
   // Campo con etiqueta flotante: `peer` para que la etiqueta (que va DESPUÉS en el DOM) sepa si el
   // campo tiene foco o texto. El ejemplo (placeholder) solo se ve con foco, para no chocar con la
@@ -372,7 +374,11 @@ export default function ContactForm({ className = "" }: { className?: string }) 
 
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
+      // primer foco o clic en el formulario: recién ahí se carga Turnstile
+      onFocus={want}
+      onPointerDown={want}
       noValidate
       className={`relative w-full rounded-3xl bg-white p-6 text-left shadow-[0_40px_80px_-30px_rgba(0,0,0,0.45)] sm:p-8 2xl:p-10 lg:short:p-6 ${className}`}
     >
