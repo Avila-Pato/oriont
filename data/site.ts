@@ -16,6 +16,8 @@ export const SITE = {
   description:
     "Servicios, productos y tecnología para bancaseguros y telecomunicaciones en Chile, Perú y Colombia. Conectamos al sponsor con el cliente final.",
   locale: "es_CL",
+  // texto alternativo de la imagen para compartir (app/opengraph-image.tsx)
+  ogAlt: "Oriont: conectamos al sponsor con el cliente final",
   email: ABOUT_CTA.contact.find((c) => c.icon === "mail")?.value ?? "contacto@oriont.cl",
   address: {
     streetAddress: "Av. Del Valle Norte 945, Of. 3604",

@@ -2,13 +2,30 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import OriontLogo from "@/components/ui/OriontLogo";
 import { PRIVACY } from "@/data/privacy";
+import { SITE } from "@/data/site";
 
-// canónica y og:url propias: si no, hereda las del inicio ("/") desde el layout
+const title = "Política de privacidad";
+const description = `Cómo ${PRIVACY.company} trata los datos personales que recibe a través de este sitio.`;
+// imagen para compartir: la misma del inicio (app/opengraph-image.tsx)
+const ogImage = { url: "/opengraph-image", width: 1200, height: 630, alt: SITE.ogAlt };
+
+// canónica y og:url propias: si no, hereda las del inicio ("/") desde el layout.
+// openGraph y twitter van completos: Next REEMPLAZA (no mezcla) el objeto del layout, y con solo
+// la url la página quedaba sin imagen, título ni nombre del sitio al compartirla
 export const metadata: Metadata = {
-  title: "Política de privacidad",
-  description: `Cómo ${PRIVACY.company} trata los datos personales que recibe a través de este sitio.`,
+  title,
+  description,
   alternates: { canonical: "/privacidad" },
-  openGraph: { url: "/privacidad" },
+  openGraph: {
+    type: "website",
+    url: "/privacidad",
+    siteName: SITE.name,
+    locale: SITE.locale,
+    title: `${title} | ${SITE.name}`,
+    description,
+    images: [ogImage],
+  },
+  twitter: { card: "summary_large_image", title: `${title} | ${SITE.name}`, description, images: [ogImage] },
 };
 
 export default function PrivacyPage() {

@@ -57,6 +57,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
   formatDetection: { telephone: false, address: false, email: false },
+  // Google Search Console, verificación por etiqueta <meta> (propiedad "prefijo de URL"). Solo si
+  // se define la variable; con la propiedad "Dominio" se verifica por DNS y no hace falta.
+  ...(process.env.GOOGLE_SITE_VERIFICATION && { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }),
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",

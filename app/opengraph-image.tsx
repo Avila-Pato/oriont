@@ -12,6 +12,7 @@ import { COLORS } from "@/data/colors";
  * quedarse en app/ y llamarse así. Para verla: localhost:3000/opengraph-image
  */
 
+// mismo texto que SITE.ogAlt (data/site.ts): Next lee este export de forma estática, debe ser literal
 export const alt = "Oriont: conectamos al sponsor con el cliente final";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

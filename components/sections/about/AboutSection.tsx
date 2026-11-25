@@ -579,7 +579,8 @@ function AboutText() {
         <span className="h-px w-8 bg-accent/50 xl:w-12" />
       </p>
       <h2 className="mt-5 font-display text-[52px] font-semibold leading-[0.95] tracking-tight sm:text-[64px] xl:text-[96px] 2xl:text-[clamp(110px,6.5vw,150px)]">
-        {ABOUT_COPY.title}
+        {/* espacio antes del salto: sin él, el texto del título queda "NuestroEquipo" para buscadores y lectores */}
+        {ABOUT_COPY.title}{" "}
         <br />
         <span className="text-accent">{ABOUT_COPY.highlight}</span>
       </h2>
