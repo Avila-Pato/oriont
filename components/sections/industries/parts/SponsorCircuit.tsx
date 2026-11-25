@@ -3,7 +3,6 @@
 import { useRef, type CSSProperties } from "react";
 import Image from "next/image";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
 import { SPONSORS } from "@/data/sponsors";
@@ -18,7 +17,7 @@ import SponsorLogo from "./SponsorLogo";
 import { W, H, C, HUBS, SPIN_SPEED, SPIN_PAD, SPINNING, AWAKE_MS, toFirstRing, DRAWING } from "./circuitDrawing";
 import { COLORS } from "@/data/colors";
 
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+gsap.registerPlugin(useGSAP);
 
 /**
  * DrawSVG + MotionPath (~28 KB) solo los usa la señal al pasar el cursor por un logo: se bajan
@@ -143,7 +142,20 @@ export default function SponsorCircuit() {
             .catch(() => {}); // cancelada al desmontar
         };
         art.style.transformOrigin = `${(C.x / W) * 100}% 50%`;
-        ScrollTrigger.create({ trigger: el, start: "top 75%", once: true, onEnter: reveal });
+        // Los dos momentos (entrar y estar a la vista) los avisan IntersectionObserver, no
+        // ScrollTrigger: crear un ScrollTrigger a una pantalla de distancia obliga a medir toda la
+        // página en pleno scroll; el observer avisa sin leer estilos ni posiciones.
+        // Entrada: cuando el borde superior pasa el 75 % de la pantalla ("top 75%"); si ya está
+        // más arriba (salto de ancla), también
+        const enterIo = new IntersectionObserver(
+          ([e]) => {
+            if (!e.isIntersecting && e.boundingClientRect.top > 0) return;
+            enterIo.disconnect();
+            reveal();
+          },
+          { rootMargin: "0px 0px -25% 0px" },
+        );
+        enterIo.observe(el);
 
         // giro: solo algunos anillos (SPINNING), por CSS en el compositor (globals.css,
         // circuit-spin). Acá solo se pausa fuera de pantalla y durante la entrada.
@@ -155,18 +167,18 @@ export default function SponsorCircuit() {
         // Solo con una parte real del abanico a la vista (entre el 80 % y el 20 % de la pantalla):
         // con "top bottom / bottom top" seguía girando con apenas 60 px asomando arriba (en Nosotros),
         // y las capas grandes que giran eran ~todo el uso de GPU de esa sección.
-        ScrollTrigger.create({
-          trigger: el,
-          start: "top 80%",
-          end: "bottom 20%",
-          onToggle: (self) => {
-            onScreen = self.isActive;
+        const viewIo = new IntersectionObserver(
+          ([e]) => {
+            if (e.isIntersecting === onScreen) return;
+            onScreen = e.isIntersecting;
             if (onScreen) wake();
             spinIfVisible();
           },
-          // hacer scroll dentro de la sección la mantiene despierta
-          onUpdate: onActivity,
-        });
+          { rootMargin: "-20% 0px -20% 0px" },
+        );
+        viewIo.observe(el);
+        // hacer scroll dentro de la sección la mantiene despierta
+        window.addEventListener("scroll", onActivity, { passive: true });
 
         // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta el primer
         // arco del abanico
@@ -203,6 +215,9 @@ export default function SponsorCircuit() {
         });
         return () => {
           pause();
+          enterIo.disconnect();
+          viewIo.disconnect();
+          window.removeEventListener("scroll", onActivity);
           // lo que no maneja GSAP (Web Animations y estilos puestos a mano) se deshace aquí
           anims.forEach((a) => a.cancel());
           faded.forEach((f) => (f.style.opacity = ""));

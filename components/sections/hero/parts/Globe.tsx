@@ -77,6 +77,8 @@ type Props = {
 
 /** duración de la entrada: el globo se materializa de abajo hacia arriba */
 const INTRO_MS = 2400;
+/** sessionStorage: la entrada ya se vio en esta pestaña */
+const INTRO_KEY = "oriont:globe-intro";
 /** ancho (en radios) de la franja brillante justo bajo el frente de escaneo */
 const INTRO_BAND = 0.16;
 /** pasadas del soplete (de derecha a izquierda) mientras se arma la esfera */
@@ -268,6 +270,12 @@ export default function Globe({ className = "", active = null, focus = null, onH
     let sinT = Math.sin(tilt);
     const AUTO = 0.00001; // velocidad de giro solo (rad/ms ≈ 0,6°/s)
     let introStart = 0; // momento del primer frame con tamaño (0 = aún no)
+    // La entrada se ve solo la primera vez en la pestaña: al recargar o volver a la página el
+    // planeta aparece armado (se marca al TERMINAR, así una entrada cortada se repite)
+    let introSeen = false;
+    try {
+      introSeen = sessionStorage.getItem(INTRO_KEY) === "1";
+    } catch {}
     // chispas de la entrada ("soldadura" del frente): x, y, vx, vy en px y px/ms; vida en ms
     const sparks: { x: number; y: number; vx: number; vy: number; life: number; max: number }[] = [];
 
@@ -386,9 +394,27 @@ export default function Globe({ className = "", active = null, focus = null, onH
       if (!introStart) {
         introStart = now;
         live.current.onReady?.();
+        // sin entrada (ya vista): en vez de aparecer de golpe, el planeta armado entra con un
+        // fundido y un leve crecimiento mientras el placeholder se desvanece. Solo opacity y
+        // transform, animados por el compositor (WAAPI): no repinta ni mueve el layout
+        if (introSeen && !reduce) {
+          canvas.animate(
+            [
+              { opacity: 0, transform: "scale(0.94)" },
+              { opacity: 1, transform: "none" },
+            ],
+            { duration: 900, easing: "cubic-bezier(0.22, 0.7, 0.2, 1)" },
+          );
+        }
       }
-      const ip = reduce ? 1 : clamp01((now - introStart) / INTRO_MS);
+      const ip = reduce || introSeen ? 1 : clamp01((now - introStart) / INTRO_MS);
       const introing = ip < 1;
+      if (!introing && !introSeen) {
+        introSeen = true;
+        try {
+          sessionStorage.setItem(INTRO_KEY, "1");
+        } catch {}
+      }
       const scan = easeInOut(clamp01(ip / 0.8)); // la esfera se arma en el 80 % del tiempo
       const late = clamp01((ip - 0.55) / 0.45); // órbitas, rutas y ciudades aparecen al final
       // altura del frente en coordenadas de la esfera (-1 abajo, 1 arriba), con margen para el jitter

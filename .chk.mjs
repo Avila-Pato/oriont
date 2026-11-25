@@ -1,20 +1,26 @@
 import { chromium } from "playwright";
-const browser = await chromium.launch({ headless: false });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-await page.goto("http://localhost:3000/", { waitUntil: "load" }); await page.waitForTimeout(1500); await page.mouse.move(5, 890);
+const browser = await chromium.launch({ headless: false, args: ["--enable-gpu-rasterization", "--ignore-gpu-blocklist"] });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const page = await ctx.newPage();
+const cdp = await ctx.newCDPSession(page);
+await page.goto("http://127.0.0.1:3000/", { waitUntil: "load" }); await page.waitForTimeout(2000); await page.mouse.move(5, 890);
 const Y = () => page.evaluate(() => scrollY);
-const go = async (y) => { for (let n = 0; n < 80 && Math.abs((await Y()) - y) > 60; n++) { const d = y - (await Y()); await page.mouse.wheel(0, Math.sign(d) * Math.min(100, Math.abs(d))); await page.waitForTimeout(130); } };
-const art = await page.evaluate(() => document.querySelector("[data-art]").getBoundingClientRect().top + scrollY);
-const state = () => page.evaluate(() => { const g = [...document.querySelectorAll("[data-sponsor-grid]")].find(x => !x.className.includes("lg:hidden")); const r = g.getBoundingClientRect();
-  const vis = Math.max(0, Math.min(innerHeight, r.bottom) - Math.max(0, r.top)); return { pct: Math.round(100 * vis / r.height), on: [...document.querySelectorAll("[data-logo-cell][data-on]")].map(c => c.dataset.sponsor).join(",") }; });
-for (const [label, dir] of [["abajo", 1], ["arriba", -1]]) {
-  await go(art - 120); await page.waitForTimeout(800);
-  await page.waitForFunction(() => document.querySelector("[data-logo-cell][data-on]"), null, { timeout: 15000, polling: 50 });
-  const t0 = Date.now(); const log = [];
-  for (let i = 0; i < 5; i++) { await page.mouse.wheel(0, dir * 250); await page.waitForTimeout(60); }
-  for (let i = 0; i < 30; i++) { const s = await state(); log.push(`${Date.now() - t0}ms ${s.pct}%vis on=[${s.on}]`); await page.waitForTimeout(100); }
-  console.log(`Salida rápida hacia ${label}:`); console.log("  " + log.filter((_, i) => i % 2 === 0).join("\n  "));
-  const before = await page.evaluate(() => document.querySelectorAll("[data-on]").length); await page.waitForTimeout(6000);
-  console.log(`  6 s después fuera: logos encendidos=${await page.evaluate(() => document.querySelectorAll("[data-logo-cell][data-on]").length)} (pct ${(await state()).pct}%)`);
-}
+const go = async (y, step = 100) => { for (let n = 0; n < 200 && Math.abs((await Y()) - y) > 60; n++) { const d = y - (await Y()); await page.mouse.wheel(0, Math.sign(d) * Math.min(step, Math.abs(d))); await page.waitForTimeout(110); } };
+const art = await page.evaluate(() => document.querySelector("[data-art]").closest("section").getBoundingClientRect().top + scrollY);
+await go(art - 2200); await page.waitForTimeout(1500);
+await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+const events = []; cdp.on("Tracing.dataCollected", (e) => events.push(...e.value));
+const done = new Promise((r) => cdp.once("Tracing.tracingComplete", r));
+await page.evaluate(() => { window.__loaf = []; new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__loaf.push(e))).observe({ type: "long-animation-frame", buffered: false }); });
+await cdp.send("Tracing.start", { traceConfig: { includedCategories: ["devtools.timeline", "disabled-by-default-devtools.timeline", "disabled-by-default-devtools.timeline.stack", "disabled-by-default-devtools.timeline.frame"] } });
+await go(art + 250); await page.waitForTimeout(4000);
+await cdp.send("Tracing.end"); await done;
+const loaf = await page.evaluate(() => window.__loaf.filter((e) => e.duration > 50).map((e) => ({ d: Math.round(e.duration), block: Math.round(e.blockingDuration), y: 0, scripts: e.scripts.filter(s=>s.duration>5).map((s) => `${Math.round(s.duration)}ms ${s.invoker} ${(s.sourceFunctionName||"")} ${s.sourceURL.split("/").pop()}`) })));
+console.log("Frames largos (>50ms, CPU 4x):", loaf.length); loaf.forEach((l) => console.log(" ", l.d + "ms", l.scripts.join(" | ")));
+const forced = events.filter((e) => (e.name === "Layout" || e.name === "UpdateLayoutTree") && e.dur > 2000 && e.args?.beginData?.stackTrace);
+console.log("Forzados >2ms:", forced.length, "total", Math.round(forced.reduce((a, e) => a + e.dur, 0) / 1000) + "ms");
+const by = {}; forced.forEach((e) => { const st = e.args.beginData.stackTrace; const f = st.find((f) => f.url.includes("_next") && !/1mb9|41c3/.test(f.url)) ?? st.at(-1); const k = `${f.functionName}@${f.columnNumber} ${f.url.split("/").pop()} ← ${st.slice(0,3).map(x=>x.functionName).join("<")}`; by[k] = (by[k] ?? 0) + e.dur / 1000; });
+Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 8).forEach(([k, v]) => console.log(`  ${v.toFixed(1)}ms  ${k}`));
+const tasks = events.filter((e) => e.name === "RunTask" && e.dur > 50000);
+console.log("Tareas >50ms:", tasks.map((e) => Math.round(e.dur / 1000) + "ms").join(", "));
 await browser.close();

@@ -1,20 +1,18 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { useNearViewport } from "@/hooks/useNearViewport";
-
-gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 /**
  * Sección Sponsors: el encabezado (etiqueta, título y párrafo) va quieto, sin animación de entrada
  * (antes la línea se dibujaba, las palabras subían tras una máscara con SplitText y aparecía el
  * párrafo: preparar eso trababa el scroll al acercarse y no aportaba). Solo los logos
  * (SponsorCircuit) entran una vez en ola, con transiciones CSS (cellEntrance.ts): aquí se marca
- * la lista visible con data-cells, sin leer estilos.
+ * la lista visible con data-cells.
+ * El momento de entrar lo avisa un IntersectionObserver, no ScrollTrigger: crear el ScrollTrigger
+ * a una pantalla de distancia obligaba a medir toda la página en pleno scroll (~11 ms; 43 ms con
+ * la CPU a 4x). El observer avisa sin leer estilos ni posiciones.
  * (el dibujo de los arcos en escritorio lo anima SponsorCircuit por su cuenta)
  */
 export default function SponsorsReveal({ id, className, children }: { id?: string; className?: string; children: ReactNode }) {
@@ -22,39 +20,34 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
   // se prepara a una pantalla de distancia, no durante la carga (igual que las otras secciones)
   const near = useNearViewport(scope);
 
-  useGSAP(
-    () => {
-      if (!near) return;
-      const mm = gsap.matchMedia();
-      mm.add(
-        { motion: "(prefers-reduced-motion: no-preference)", desktop: "(min-width: 1024px)" },
-        (ctx) => {
-          if (!ctx.conditions?.motion) return;
-          // logos: entran una vez, en ola, con transiciones CSS (cellEntrance.ts): aquí solo se
-          // marca la lista de la versión visible (escritorio: abanico · celular: grilla). La ola va
-          // en el orden de la lista: en el abanico ese orden ya va de los anillos de adentro hacia afuera.
-          const grid = gsap.utils
-            .toArray<HTMLElement>("[data-sponsor-grid]")
-            .find((g) => g.classList.contains("lg:hidden") !== !!ctx.conditions?.desktop);
-          if (grid && grid.dataset.cells !== "in") {
-            grid.dataset.cells = "out";
-            ScrollTrigger.create({
-              trigger: grid,
-              start: "top 85%",
-              once: true,
-              onEnter: () => (grid.dataset.cells = "in"),
-            });
-          }
-          // si se revierte antes de entrar (cambio de tamaño), los logos quedan a la vista
-          return () => {
-            if (grid?.dataset.cells === "out") delete grid.dataset.cells;
-          };
-        },
-      );
-      return () => mm.revert();
-    },
-    { scope, dependencies: [near] },
-  );
+  useEffect(() => {
+    if (!near || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // la lista de la versión visible (escritorio: abanico · celular: grilla), según el ancho
+    // (lg = 1024px, como en las clases), sin medir el DOM. La ola va en el orden de la lista: en
+    // el abanico ese orden ya va de los anillos de adentro hacia afuera.
+    const desktop = matchMedia("(min-width: 1024px)").matches;
+    const grid = Array.from(scope.current?.querySelectorAll<HTMLElement>("[data-sponsor-grid]") ?? []).find(
+      (g) => g.classList.contains("lg:hidden") !== desktop,
+    );
+    if (!grid || grid.dataset.cells === "in") return;
+    grid.dataset.cells = "out";
+    // entra cuando su borde superior pasa el 85 % de la pantalla (como el "top 85%" de antes);
+    // si ya está más arriba (se llegó con un salto de ancla), entra también
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting && e.boundingClientRect.top > 0) return;
+        grid.dataset.cells = "in";
+        io.disconnect();
+      },
+      { rootMargin: "0px 0px -15% 0px" },
+    );
+    io.observe(grid);
+    // si se desmonta antes de entrar, los logos quedan a la vista
+    return () => {
+      io.disconnect();
+      if (grid.dataset.cells === "out") delete grid.dataset.cells;
+    };
+  }, [near]);
 
   return (
     // data-near: la sección está a una pantalla de distancia. Recién ahí SponsorLogo aplica su

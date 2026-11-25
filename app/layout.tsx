@@ -67,7 +67,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // suppressHydrationWarning (solo los atributos de <html>, no sus hijos): Lenis le agrega la
+    // clase "lenis" y algunas extensiones también tocan su class; en dev eso salía como error de
+    // hidratación aunque la página está bien
     <html
+      suppressHydrationWarning
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
