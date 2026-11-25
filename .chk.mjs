@@ -1,13 +1,32 @@
 import { chromium } from "playwright";
-const browser = await chromium.launch({ headless: false });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-await page.goto("http://127.0.0.1:3000/"); await page.waitForTimeout(4500);
-const c = page.locator("canvas").first(); const b = await c.boundingBox();
-const clip = { x: b.x + 300, y: b.y + 300, width: 260, height: 320 };
-await page.mouse.move(b.x + 250, b.y + 600, { steps: 3 }); await page.waitForTimeout(600);
-await c.screenshot({ path: "C:/Users/User/AppData/Local/Temp/claude/0d46e152d014b4f4/bdcdfe50-fe95-462d-a48e-e6f52ebfa8e5/scratchpad/h-0.png" });
-for (const [n, x, y] of [["peru", 412, 425], ["chile", 425, 600], ["colombia", 420, 365]]) {
-  await page.mouse.move(b.x + x, b.y + y, { steps: 3 }); await page.waitForTimeout(200);
-  await c.screenshot({ path: "C:/Users/User/AppData/Local/Temp/claude/0d46e152d014b4f4/bdcdfe50-fe95-462d-a48e-e6f52ebfa8e5/scratchpad/h-" + n + "-200ms.png" });
-}
+const browser = await chromium.launch({ headless: false, args: ["--enable-gpu-rasterization", "--ignore-gpu-blocklist"] });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const page = await ctx.newPage();
+const cdp = await ctx.newCDPSession(page);
+await page.goto("http://127.0.0.1:3000/", { waitUntil: "load" }); await page.waitForTimeout(2000); await page.mouse.move(5, 890);
+const Y = () => page.evaluate(() => scrollY);
+const go = async (y) => { for (let n = 0; n < 200 && Math.abs((await Y()) - y) > 60; n++) { const d = y - (await Y()); await page.mouse.wheel(0, Math.sign(d) * Math.min(100, Math.abs(d))); await page.waitForTimeout(110); } };
+const art = await page.evaluate(() => document.querySelector("[data-art]").getBoundingClientRect().top + scrollY);
+await go(art - 150); await page.waitForTimeout(3000);
+const cells = await page.evaluate(() => [...document.querySelectorAll("[data-logo-cell]")].map((c) => { const r = c.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }).filter(([x, y]) => y > 0 && y < innerHeight));
+console.log("logos a la vista:", cells.length);
+const run = async (label, fn) => {
+  const events = []; const h = (e) => events.push(...e.value); cdp.on("Tracing.dataCollected", h);
+  const done = new Promise((r) => cdp.once("Tracing.tracingComplete", r));
+  await cdp.send("Tracing.start", { traceConfig: { includedCategories: ["devtools.timeline", "disabled-by-default-devtools.timeline", "disabled-by-default-devtools.timeline.stack"] } });
+  await fn();
+  await cdp.send("Tracing.end"); await done; cdp.off("Tracing.dataCollected", h);
+  const main = events.find((e) => e.name === "thread_name" && e.args?.name === "CrRendererMain" && events.some(x => x.pid === e.pid && x.name === "UpdateLayoutTree"));
+  const on = events.filter((e) => e.pid === main?.pid && e.tid === main?.tid);
+  const sum = (n) => Math.round(on.filter((e) => e.name === n).reduce((a, e) => a + (e.dur || 0), 0) / 1000);
+  const forced = on.filter((e) => (e.name === "UpdateLayoutTree" || e.name === "Layout") && e.args?.beginData?.stackTrace);
+  const long = on.filter((e) => e.name === "RunTask" && e.dur > 50000).length;
+  console.log(`${label.padEnd(26)} estilo=${sum("UpdateLayoutTree")}ms (forzado ${Math.round(forced.reduce((a, e) => a + e.dur, 0) / 1000)}ms) layout=${sum("Layout")}ms capas=${sum("Layerize")}ms paint=${sum("Paint")}ms hitTest=${sum("HitTest")}ms script=${sum("FunctionCall")}ms tareas>50ms=${long}`);
+  const by = {}; forced.forEach((e) => { const f = e.args.beginData.stackTrace[0]; const k = `${f.functionName || "anon"}@${f.url.split("/").pop()}:${f.columnNumber}`; by[k] = (by[k] ?? 0) + e.dur / 1000; });
+  Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([k, v]) => console.log(`     forzado ${v.toFixed(1)}ms ${k}`));
+};
+await run("quieto 3s", () => page.waitForTimeout(3000));
+await (async () => { const [x, y] = cells[2]; await page.mouse.move(x, y, { steps: 3 }); await page.waitForTimeout(380); await page.screenshot({ path: "C:/Users/User/AppData/Local/Temp/claude/0d46e152d014b4f4/bdcdfe50-fe95-462d-a48e-e6f52ebfa8e5/scratchpad/senal.png" }); await page.mouse.move(5, 890); await page.waitForTimeout(2500); })();
+await run("mouse sobre logos 3s", async () => { for (let i = 0; i < 30; i++) { const [x, y] = cells[i % cells.length]; await page.mouse.move(x, y, { steps: 3 }); await page.waitForTimeout(70); } });
+await run("scroll por la seccion", async () => { for (let i = 0; i < 12; i++) { await page.mouse.wheel(0, 100); await page.waitForTimeout(110); } for (let i = 0; i < 12; i++) { await page.mouse.wheel(0, -100); await page.waitForTimeout(110); } });
 await browser.close();

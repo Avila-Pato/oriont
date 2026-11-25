@@ -76,10 +76,16 @@ export const SIGNAL_SPREAD = 30;
 
 /** trazo de la señal: del logo en línea recta hasta un punto del primer arco, `jitter` grados
  *  (-1..1 × SIGNAL_SPREAD) corrido del ángulo del logo */
-export const toFirstRing = (n: { x: number; y: number }, jitter = 0) => {
+/** punto del primer arco al que llega la señal de un logo (jitter -1…1: corrimiento al azar) */
+export const firstRingPoint = (n: { x: number; y: number }, jitter = 0) => {
   const deg = (Math.atan2(n.y - C.y, n.x - C.x) * 180) / Math.PI + jitter * SIGNAL_SPREAD;
   const p = pt(FIRST_RING, deg);
-  return `M${n.x} ${n.y}L${r1(p.x)} ${r1(p.y)}`;
+  return { x: r1(p.x), y: r1(p.y) };
+};
+
+export const toFirstRing = (n: { x: number; y: number }, jitter = 0) => {
+  const p = firstRingPoint(n, jitter);
+  return `M${n.x} ${n.y}L${p.x} ${p.y}`;
 };
 
 /** azar con semilla (mulberry32) */

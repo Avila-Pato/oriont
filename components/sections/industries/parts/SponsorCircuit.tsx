@@ -14,21 +14,10 @@ import logoDental from "@/public/images/Logo_DentalAssist.webp";
 
 import { CELL_ENTRANCE } from "./cellEntrance";
 import SponsorLogo from "./SponsorLogo";
-import { W, H, C, HUBS, SPIN_SPEED, SPIN_PAD, SPINNING, AWAKE_MS, toFirstRing, DRAWING } from "./circuitDrawing";
+import { W, H, C, HUBS, SPIN_SPEED, SPIN_PAD, SPINNING, AWAKE_MS, firstRingPoint, DRAWING } from "./circuitDrawing";
 import { COLORS } from "@/data/colors";
 
 gsap.registerPlugin(useGSAP);
-
-/**
- * DrawSVG + MotionPath (~28 KB) solo los usa la señal al pasar el cursor por un logo: se bajan
- * aparte (import dinámico) cuando el abanico se acerca a la pantalla. En celular el abanico está
- * oculto (display:none), nunca se "acerca" y no se descargan.
- */
-let signalPlugins: Promise<void> | null = null;
-const loadSignalPlugins = () =>
-  (signalPlugins ??= Promise.all([import("gsap/DrawSVGPlugin"), import("gsap/MotionPathPlugin")]).then(([d, m]) => {
-    gsap.registerPlugin(d.DrawSVGPlugin, m.MotionPathPlugin);
-  }));
 
 /*
  * Escritorio: "abanico de circuito". Las 3 marcas del grupo (Conectados TMK, Oriont, Dental Assist)
@@ -186,27 +175,36 @@ export default function SponsorCircuit() {
         const traces = q<SVGPathElement>("[data-trace]");
         const sparks = q<SVGCircleElement>("[data-spark]");
         const busy = new Set<number>();
-        let ready = false;
-        void loadSignalPlugins().then(() => (ready = true));
+        // El trazo es una línea recta: cada cuadro se calcula el punto de avance con una suma y se
+        // escribe en el SVG (d del trazo, cx/cy del punto). Antes lo hacían DrawSVG y MotionPath, que
+        // MEDÍAN el SVG en cada pasada (getBBox/getScreenCTM: ~6 ms de diseño forzado por logo) y
+        // había que descargarlos aparte. Las opacidades van con valor inicial explícito (fromTo)
+        // para que GSAP no lea el estilo actual.
         const signal = (i: number) => {
-          if (!ready || busy.has(i)) return; // sin plugins aún: ese paso del cursor no dispara señal
-
+          if (busy.has(i)) return;
           busy.add(i);
+          const tr = traces[i];
+          const sp = sparks[i];
+          const from = DRAWING.nodes[i];
           // cada vez llega a un punto distinto del primer arco (al azar)
-          traces[i].setAttribute("d", toFirstRing(DRAWING.nodes[i], Math.random() * 2 - 1));
+          const to = firstRingPoint(from, Math.random() * 2 - 1);
+          const run = { t: 0 };
+          const step = () => {
+            const x = from.x + (to.x - from.x) * run.t;
+            const y = from.y + (to.y - from.y) * run.t;
+            tr.setAttribute("d", `M${from.x} ${from.y}L${x} ${y}`);
+            sp.setAttribute("cx", String(x));
+            sp.setAttribute("cy", String(y));
+          };
+          step();
           gsap
             .timeline({ onComplete: () => busy.delete(i) })
             // el SVG de las señales va oculto (visibility): solo se muestra la que está corriendo
-            .set([traces[i], sparks[i]], { opacity: 1, visibility: "visible" })
-            .fromTo(traces[i], { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 0.7, ease: "power2.inOut" })
-            .to(
-              sparks[i],
-              { motionPath: { path: traces[i], align: traces[i], alignOrigin: [0.5, 0.5] }, duration: 0.7, ease: "power2.inOut" },
-              0,
-            )
-            .to(sparks[i], { opacity: 0, duration: 0.2 })
-            .to(traces[i], { opacity: 0, duration: 0.8 }, "+=0.3")
-            .set([traces[i], sparks[i]], { visibility: "hidden" });
+            .set([tr, sp], { opacity: 1, visibility: "visible" })
+            .to(run, { t: 1, duration: 0.7, ease: "power2.inOut", onUpdate: step })
+            .fromTo(sp, { opacity: 1 }, { opacity: 0, duration: 0.2 })
+            .fromTo(tr, { opacity: 1 }, { opacity: 0, duration: 0.8 }, "+=0.3")
+            .set([tr, sp], { visibility: "hidden" });
         };
         const enter = cells.map((c, i) => {
           const fn = () => signal(i);
