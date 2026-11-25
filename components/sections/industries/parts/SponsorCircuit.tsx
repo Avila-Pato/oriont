@@ -43,7 +43,7 @@ const loadSignalPlugins = () =>
  * entrada solo anima transform/opacity de capas (no repinta trazos ni recorta con clip-path). Los
  * anillos que giran van en capas propias rotadas por CSS: el giro no repinta nada en el hilo principal.
  * - Al pasar el cursor por un logo, una señal celeste viaja en línea recta hasta el primer arco del
- *   abanico, a un punto distinto cada vez (con el scroll los logos solo toman su color: SponsorScrollColor).
+ *   abanico, a un punto distinto cada vez (el encendido de colores de a uno lo hace SponsorScrollColor).
  * - La entrada de los logos la hace SponsorsReveal ([data-logo-cell]).
  * Va a todo el ancho de la pantalla (IndustriesSection lo pone fuera del contenedor) para que el abanico
  * vaya de borde a borde. Arcos circulares (sin deformar): los grandes se recortan arriba y abajo.
@@ -169,7 +169,7 @@ export default function SponsorCircuit() {
         });
 
         // señal: al pasar el cursor por un logo, un punto celeste corre por su trazo hasta el primer
-        // arco del abanico (con el scroll no: los logos solo toman su color)
+        // arco del abanico
         const cells = q<HTMLElement>("[data-logo-cell]");
         const traces = q<SVGPathElement>("[data-trace]");
         const sparks = q<SVGCircleElement>("[data-spark]");

@@ -16,18 +16,16 @@ export default function IndustriesSection() {
           {/* mismo encabezado que las demás secciones: etiqueta chica con rayita + título azul
               marino con el remate en celeste (antes era un título celeste distinto al resto) */}
           <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em] text-accent-ink xl:text-[12px]">
-            <span data-reveal-line className="h-px w-6 bg-accent xl:w-8" />
+            <span className="h-px w-6 bg-accent xl:w-8" />
             <span>Sponsors y aliados</span>
           </p>
-          {/* h2: el h1 de la página es el del hero. data-reveal-title va en el h2 (no en un span):
-              SplitText le pone aria-label, que solo es válido en elementos con rol */}
+          {/* h2: el h1 de la página es el del hero */}
           <h2
-            data-reveal-title
             className="mt-5 font-display text-[36px] font-semibold leading-[1.05] tracking-tight text-navy md:text-[44px] xl:text-[52px]"
           >
             Confían en <span className="text-accent">nosotros.</span>
           </h2>
-          <p data-reveal-text className="mt-5 max-w-[420px] text-[15px] leading-relaxed
+          <p className="mt-5 max-w-[420px] text-[15px] leading-relaxed
            text-navy/70 xl:max-w-[600px] xl:text-[17px]">
             Trabajamos junto a marcas que confían en nuestra experiencia y
             compromiso. Conoce a nuestros sponsors y aliados estratégicos, que

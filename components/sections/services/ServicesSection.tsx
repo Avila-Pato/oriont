@@ -46,17 +46,21 @@ export default function ServicesSection() {
 
 const fmt = (v: number, d = 0) => v.toFixed(d).replace(".", ",");
 
-/** Cifras de la tarjeta: cuentan desde cero cada vez que la tarjeta se abre. */
+/** Cifras de la tarjeta: cuentan desde cero la PRIMERA vez que la tarjeta se abre; después se
+ *  muestran ya con su valor final (contarlas en cada apertura era trabajo repetido sin aporte). */
 function BrandStats({ stats, on, muted }: { stats: BrandStat[]; on: boolean; muted: string }) {
   const refs = useRef<(HTMLSpanElement | null)[]>([]);
   const wrap = useRef<HTMLDivElement>(null);
+  const played = useRef(false);
 
   useEffect(() => {
-    if (!on) return;
+    if (!on || played.current) return;
+    played.current = true;
+    const els = refs.current;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const ctx = gsap.context(() => {
       stats.forEach((s, i) => {
-        const el = refs.current[i];
+        const el = els[i];
         if (!el) return;
         if (reduce) return void (el.textContent = fmt(s.value, s.decimals));
         const o = { v: 0 };
@@ -73,7 +77,14 @@ function BrandStats({ stats, on, muted }: { stats: BrandStat[]; on: boolean; mut
         gsap.from("[data-bline]", { scaleY: 0, duration: 0.8, delay: 0.4, ease: "power3.inOut", stagger: 0.12 });
       }
     }, wrap);
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      // si se cerró a mitad de la cuenta, el número queda en su valor final (no en uno intermedio)
+      stats.forEach((s, i) => {
+        const el = els[i];
+        if (el) el.textContent = fmt(s.value, s.decimals);
+      });
+    };
   }, [on, stats]);
 
   return (

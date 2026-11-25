@@ -1,24 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
-
-/** cada cuánto se enciende un logo nuevo mientras se hace scroll (ms) */
-const EVERY = 220;
-/** cada cuánto se enciende uno con la pantalla quieta (ms): más tranquilo que con scroll */
+/** cada cuánto se enciende un logo con la grilla a la vista (ms) */
 const IDLE_EVERY = 3000; // antes 1300: el nombre de SponsorLive quedaba animándose casi sin pausa
 /** cuánto queda encendido cada logo (ms) */
 const HOLD = 1100;
 
 /**
- * Enciende logos EN ORDEN (el de la lista de sponsors: 1, 2, 3… y vuelve a empezar) con su color de marca (marca la celda con data-on; el color y la
- * transición los pone SponsorLogo con CSS):
- * - mientras se hace scroll sobre la grilla, seguido
- * - con la grilla en pantalla y sin scroll, de a uno cada tanto
- * Cada logo se apaga solo. Fuera de pantalla no corre nada. No dibuja nada.
+ * Enciende logos EN ORDEN (el de la lista de sponsors: 1, 2, 3… y vuelve a empezar) con su color de
+ * marca, de a uno cada IDLE_EVERY, solo con al menos un cuarto de la grilla a la vista (marca la
+ * celda con data-on; el color y la transición los pone SponsorLogo con CSS). Cada logo se apaga solo.
+ * Con el scroll ya NO se encienden (antes se prendían seguidos al pasar: trabajo extra en pleno
+ * scroll). Fuera de pantalla no corre nada. No dibuja nada.
  */
 export default function SponsorScrollColor() {
   useEffect(() => {
@@ -38,13 +32,9 @@ export default function SponsorScrollColor() {
       );
     let cells = cellsOf(grid);
     const timers = new Map<HTMLElement, number>();
-    let last = 0;
     let prev = -1;
 
-    const light = (gap: number) => {
-      const now = performance.now();
-      if (now - last < gap) return;
-      last = now;
+    const light = () => {
       // si cambió el ancho de pantalla y ahora se ve la otra versión
       const g = visible();
       if (g !== grid) {
@@ -65,29 +55,10 @@ export default function SponsorScrollColor() {
       );
     };
 
-    // con scroll. El encendido (escribir data-on) se deja para el final del ticker de GSAP: si se
-    // hace dentro de ScrollTrigger.update, el siguiente trigger lee el scroll con el estilo ya
-    // cambiado y el navegador tiene que recalcular estilos en el acto (en cada cuadro de scroll)
-    let pending = false;
-    const flush = () => {
-      if (!pending) return;
-      pending = false;
-      light(EVERY);
-    };
-    gsap.ticker.add(flush);
-    const st = ScrollTrigger.create({
-      trigger: grids[0].parentElement ?? grid,
-      start: "top bottom",
-      end: "bottom top",
-      onUpdate: () => {
-        pending = true;
-      },
-    });
-
-    // con la pantalla quieta (si hubo scroll hace poco, light() lo deja pasar: no se duplica)
+    // ciclo: uno cada IDLE_EVERY mientras la grilla se vea
     let idle = 0;
     const loop = () => {
-      light(IDLE_EVERY);
+      light();
       idle = window.setTimeout(loop, IDLE_EVERY);
     };
     // Solo con al menos un cuarto del muro a la vista: con apenas el borde asomando (en Nosotros
@@ -104,8 +75,6 @@ export default function SponsorScrollColor() {
     grids.forEach((g) => io.observe(g));
 
     return () => {
-      gsap.ticker.remove(flush);
-      st.kill();
       io.disconnect();
       clearTimeout(idle);
       timers.forEach((t) => clearTimeout(t));

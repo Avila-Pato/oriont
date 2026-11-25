@@ -3,35 +3,18 @@
 import { useRef, type ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import type { SplitText as SplitTextPlugin } from "gsap/SplitText";
 import { useGSAP } from "@gsap/react";
 
 import { useNearViewport } from "@/hooks/useNearViewport";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-/** corre `fn` en un momento libre del navegador (o casi al tiro si no hay requestIdleCallback) */
-const whenIdle = (fn: () => void) =>
-  window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 500 }) : window.setTimeout(fn, 60);
-const cancelIdle = (id: number) => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
-
-/** SplitText (~10 KB) solo lo usa esta entrada, más abajo en la página: se baja aparte (import
- *  dinámico) cuando la sección se acerca, no en la carga inicial */
-let splitLoading: Promise<typeof SplitTextPlugin> | null = null;
-const loadSplitText = () =>
-  (splitLoading ??= import("gsap/SplitText").then((m) => {
-    gsap.registerPlugin(m.SplitText);
-    return m.SplitText;
-  }));
-
 /**
- * Entrada de la sección Sponsors atada al scroll (scrub) la PRIMERA vez: avanza y retrocede con la
- * rueda hasta completarse; después queda puesta y no se repite.
- * La línea del título se dibuja, las palabras suben tras una máscara y aparece el párrafo; los
- * logos (SponsorCircuit) entran una vez en ola, con transiciones CSS (cellEntrance.ts).
- * Solo transform/opacity (sin CLS). El contenido llega renderizado desde el servidor como children;
- * aquí solo se anima, buscando por data-atributos:
- *   [data-reveal-line]  [data-reveal-title]  [data-reveal-text]  [data-logo-cell]
+ * Sección Sponsors: el encabezado (etiqueta, título y párrafo) va quieto, sin animación de entrada
+ * (antes la línea se dibujaba, las palabras subían tras una máscara con SplitText y aparecía el
+ * párrafo: preparar eso trababa el scroll al acercarse y no aportaba). Solo los logos
+ * (SponsorCircuit) entran una vez en ola, con transiciones CSS (cellEntrance.ts): aquí se marca
+ * la lista visible con data-cells, sin leer estilos.
  * (el dibujo de los arcos en escritorio lo anima SponsorCircuit por su cuenta)
  */
 export default function SponsorsReveal({ id, className, children }: { id?: string; className?: string; children: ReactNode }) {
@@ -40,96 +23,35 @@ export default function SponsorsReveal({ id, className, children }: { id?: strin
   const near = useNearViewport(scope);
 
   useGSAP(
-    (_, contextSafe) => {
+    () => {
       if (!near) return;
       const mm = gsap.matchMedia();
-
-      // Se arma en un momento libre, no en el mismo cuadro en que se activa data-near: ese cambio
-      // deja los estilos sin calcular (máscaras de los logos) y GSAP, al leer los valores de
-      // partida, obligaba a recalcularlos en el acto (una tarea de ~120 ms con CPU lenta, que se
-      // sentía como un salto justo al soltarse la cadena de valor). La sección está a una
-      // pantalla de distancia, así que hay tiempo de sobra.
-      const build = contextSafe!((SplitText: typeof SplitTextPlugin) =>
-        mm.add(
-          { motion: "(prefers-reduced-motion: no-preference)", desktop: "(min-width: 1024px)" },
-          (ctx) => {
-            if (!ctx.conditions?.motion) return;
-            // SplitText (aria "auto") pone aria-label con el texto completo en el elemento y oculta
-            // las palabras: por eso [data-reveal-title] tiene que ser el <h2> y no un <span>
-            // (ARIA prohíbe aria-label en elementos sin rol: falla de Lighthouse). Con "hidden" el
-            // encabezado quedaba vacío para el lector de pantalla.
-            const split = SplitText.create("[data-reveal-title]", { type: "words", mask: "words" });
-
-            // El timeline (con su ScrollTrigger) se arma en OTRO momento libre: armarlo junto con el
-            // SplitText era una tarea de ~70 ms (con CPU lenta) mientras se hacía scroll (cada tween
-            // lee los estilos de su elemento y el navegador recalcula). Partir las palabras no cambia
-            // cómo se ve, así que el título queda igual hasta que llega esta segunda parte.
-            const id2 = whenIdle(() =>
-              ctx.add(() => {
-              const tl = gsap.timeline({
-                defaults: { ease: "none" },
-                scrollTrigger: {
-                  trigger: scope.current,
-                  start: "top 85%",
-                  end: "top 15%",
-                  scrub: 0.8, // segundos que tarda en "alcanzar" al scroll: suaviza la rueda
-                  // UNA sola vez: terminada la entrada queda puesta y el trigger se suelta (al volver a
-                  // pasar ya no se deshace ni se rehace). Antes de terminarla sí sigue a la rueda.
-                  onLeave: (self) => {
-                    // primero se completa (el scrub puede venir atrasado) y recién después se suelta el
-                    // trigger, conservando la animación (2º argumento): kill() sin él la eliminaba y el
-                    // párrafo quedaba oculto
-                    self.getTween()?.kill();
-                    tl.progress(1);
-                    self.kill(false, true);
-                  },
-                },
-              });
-
-              tl.from("[data-reveal-line]", { scaleX: 0, transformOrigin: "0% 50%", duration: 0.3 }, 0)
-                .from(split.words, { yPercent: 110, duration: 0.4, stagger: 0.06, ease: "power2.out" }, 0.08)
-                .from("[data-reveal-text]", { opacity: 0, y: 24, duration: 0.4 }, 0.3);
-              }),
-            );
-
-            // logos: entran una vez, en ola, con transiciones CSS (cellEntrance.ts): aquí solo se
-            // marca la lista de la versión visible (escritorio: abanico · celular: grilla), sin
-            // leer estilos. La ola va en el orden de la lista: en el abanico ese orden ya va de los
-            // anillos de adentro hacia afuera.
-            const grid = gsap.utils
-              .toArray<HTMLElement>("[data-sponsor-grid]")
-              .find((g) => g.classList.contains("lg:hidden") !== !!ctx.conditions?.desktop);
-            if (grid && grid.dataset.cells !== "in") {
-              grid.dataset.cells = "out";
-              ScrollTrigger.create({
-                trigger: grid,
-                start: "top 85%",
-                once: true,
-                onEnter: () => (grid.dataset.cells = "in"),
-              });
-            }
-
-            return () => {
-              cancelIdle(id2);
-              split.revert();
-              // si se revierte antes de entrar (cambio de tamaño), los logos quedan a la vista
-              if (grid?.dataset.cells === "out") delete grid.dataset.cells;
-            };
-          },
-        ),
+      mm.add(
+        { motion: "(prefers-reduced-motion: no-preference)", desktop: "(min-width: 1024px)" },
+        (ctx) => {
+          if (!ctx.conditions?.motion) return;
+          // logos: entran una vez, en ola, con transiciones CSS (cellEntrance.ts): aquí solo se
+          // marca la lista de la versión visible (escritorio: abanico · celular: grilla). La ola va
+          // en el orden de la lista: en el abanico ese orden ya va de los anillos de adentro hacia afuera.
+          const grid = gsap.utils
+            .toArray<HTMLElement>("[data-sponsor-grid]")
+            .find((g) => g.classList.contains("lg:hidden") !== !!ctx.conditions?.desktop);
+          if (grid && grid.dataset.cells !== "in") {
+            grid.dataset.cells = "out";
+            ScrollTrigger.create({
+              trigger: grid,
+              start: "top 85%",
+              once: true,
+              onEnter: () => (grid.dataset.cells = "in"),
+            });
+          }
+          // si se revierte antes de entrar (cambio de tamaño), los logos quedan a la vista
+          return () => {
+            if (grid?.dataset.cells === "out") delete grid.dataset.cells;
+          };
+        },
       );
-
-      // el plugin se pide ya (en paralelo); se arma en el momento libre, cuando ya llegó
-      let cancelled = false;
-      const split = loadSplitText();
-      const setup = () => void split.then((S) => !cancelled && build(S));
-      const idle = window.requestIdleCallback?.(setup, { timeout: 400 }) ?? window.setTimeout(setup, 60);
-      return () => {
-        cancelled = true;
-        if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
-        else clearTimeout(idle);
-        mm.revert();
-      };
+      return () => mm.revert();
     },
     { scope, dependencies: [near] },
   );
