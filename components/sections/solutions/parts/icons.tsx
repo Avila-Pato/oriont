@@ -10,6 +10,17 @@ const ICONS: Record<StepIcon, ReactNode> = {
   product: <path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8L12 3z" />,
 };
 
+/** marca de "incluido" en las listas de las cartas. Va en SVG y no como el carácter ✓: ninguna
+ *  de las fuentes de la página lo trae y el navegador tenía que buscar otra fuente del sistema
+ *  para dibujarlo (~3–4 ms del primer cálculo de diseño de la página) */
+export function CheckGlyph({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M2.5 6.4l2.3 2.3 4.7-5" />
+    </svg>
+  );
+}
+
 export function StepGlyph({ icon, className }: { icon: StepIcon; className: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className}>

@@ -12,15 +12,13 @@ import CircleBottom from "./parts/CircleBottom";
 import ContactForm from "@/components/contact/ContactForm";
 import ShakeTeamGrid from "./parts/ShakeTeamGrid";
 import TeamCard from "./parts/TeamCard";
+import { whenIdle, cancelIdle } from "@/lib/idle";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const DESKTOP = "(min-width: 1024px)";
 
 /** corre `fn` en un momento libre del navegador (o casi al tiro si no hay requestIdleCallback) */
-const whenIdle = (fn: () => void) =>
-  window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 500 }) : window.setTimeout(fn, 60);
-const cancelIdle = (id: number) => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
 
 /** radios (en % del escenario) de la elipse donde van las tarjetas: así llenan cualquier pantalla */
 const RADIUS_X = 41;

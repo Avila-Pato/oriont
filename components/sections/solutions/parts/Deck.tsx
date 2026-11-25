@@ -1,6 +1,6 @@
 import { steps, type Step } from "@/data/solutions";
 import { THEME } from "./themes";
-import { StepGlyph } from "./icons";
+import { CheckGlyph, StepGlyph } from "./icons";
 import { CARD_H, DEPTH_DIM, OFFSET, depthOf, pad, type Moving } from "./constants";
 
 type DeckProps = {
@@ -101,7 +101,9 @@ function DeckCard({ step: s, i, isFront, depth, out, dim, onPick }: DeckCardProp
         <ul className="mt-5 space-y-2.5">
           {s.points.map((p) => (
             <li key={p} className="flex items-center gap-3 text-[13px] font-medium xl:text-[14px]">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-current/15 text-[12px]">✓</span>
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-current/15">
+                <CheckGlyph className="size-3" />
+              </span>
               {p}
             </li>
           ))}

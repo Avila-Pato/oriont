@@ -1,6 +1,6 @@
 import { steps } from "@/data/solutions";
 import { THEME } from "./themes";
-import { StepGlyph } from "./icons";
+import { CheckGlyph, StepGlyph } from "./icons";
 import { pad } from "./constants";
 
 /** Celular/tablet: grilla de 2 columnas; la 01 (sponsor, inicio de la cadena) va a lo ancho.
@@ -35,7 +35,9 @@ export default function MobileGrid() {
             <ul className="mt-4 hidden space-y-2 sm:block">
               {s.points.map((p) => (
                 <li key={p} className="flex items-center gap-3 text-[13px] font-medium">
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-current/15 text-[11px]">✓</span>
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-current/15">
+                    <CheckGlyph className="size-[11px]" />
+                  </span>
                   {p}
                 </li>
               ))}

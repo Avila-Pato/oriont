@@ -77,8 +77,6 @@ type Props = {
 
 /** duración de la entrada: el globo se materializa de abajo hacia arriba */
 const INTRO_MS = 2400;
-/** el país elegido "se ve de frente" si su ciudad queda con z ≥ esto (1 = centro del globo) */
-const FACING = 0.55;
 /** sessionStorage: la entrada ya se vio en esta pestaña */
 const INTRO_KEY = "oriont:globe-intro";
 /** ancho (en radios) de la franja brillante justo bajo el frente de escaneo */
@@ -455,13 +453,11 @@ export default function Globe({ className = "", active = null, focus = null, onH
       let aligning = false;
       if (!dragging || !moved) {
         if (focused) {
-          // Al elegir un país el mundo se queda quieto y solo se levanta el país (la lupa). Solo si
-          // el país no se ve bien de frente (se giró el globo a mano) gira hacia él primero, por el
-          // camino más corto, y se detiene al llegar.
+          // Al elegir un país el globo gira hasta dejarlo al centro (por el camino más corto) y se
+          // detiene ahí; el país se levanta al llegar. Pasar el cursor solo lo levanta, sin girar.
           if (focused.code !== turnFor) {
             turnFor = focused.code;
-            const city = CITIES.find((c) => c.code === focused.code);
-            turning = !city || rotate(city.v).z < FACING;
+            turning = true;
           }
           if (turning) {
             const targetRot = focused.view[1] * DEG;
