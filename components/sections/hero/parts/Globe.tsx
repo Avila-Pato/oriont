@@ -464,10 +464,13 @@ export default function Globe({ className = "", active = null, focus = null, onH
             let d = (targetRot - rot) % (Math.PI * 2);
             if (d > Math.PI) d -= Math.PI * 2;
             if (d < -Math.PI) d += Math.PI * 2;
-            aligning = Math.abs(d) > 0.15 || Math.abs(focused.view[0] * DEG - tilt) > 0.15;
+            const dt = focused.view[0] * DEG - tilt;
+            // el país se levanta ya cerca del centro (~9°), pero el giro sigue hasta quedar centrado
+            // de verdad (antes se cortaba ahí y el país quedaba corrido, ej. de Chile a Colombia)
+            aligning = Math.abs(d) > 0.15 || Math.abs(dt) > 0.15;
             rot += d * 0.07;
-            tilt += (focused.view[0] * DEG - tilt) * 0.07;
-            if (!aligning) turning = false;
+            tilt += dt * 0.07;
+            if (Math.abs(d) < 0.002 && Math.abs(dt) < 0.002) turning = false;
           }
           velRot = 0;
           velTilt = 0;
