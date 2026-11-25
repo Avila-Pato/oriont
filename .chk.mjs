@@ -1,26 +1,13 @@
 import { chromium } from "playwright";
-const browser = await chromium.launch({ headless: false, args: ["--enable-gpu-rasterization", "--ignore-gpu-blocklist"] });
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-const page = await ctx.newPage();
-const cdp = await ctx.newCDPSession(page);
-await page.goto("http://127.0.0.1:3000/", { waitUntil: "load" }); await page.waitForTimeout(2000); await page.mouse.move(5, 890);
-const Y = () => page.evaluate(() => scrollY);
-const go = async (y, step = 100) => { for (let n = 0; n < 200 && Math.abs((await Y()) - y) > 60; n++) { const d = y - (await Y()); await page.mouse.wheel(0, Math.sign(d) * Math.min(step, Math.abs(d))); await page.waitForTimeout(110); } };
-const art = await page.evaluate(() => document.querySelector("[data-art]").closest("section").getBoundingClientRect().top + scrollY);
-await go(art - 2200); await page.waitForTimeout(1500);
-await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-const events = []; cdp.on("Tracing.dataCollected", (e) => events.push(...e.value));
-const done = new Promise((r) => cdp.once("Tracing.tracingComplete", r));
-await page.evaluate(() => { window.__loaf = []; new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__loaf.push(e))).observe({ type: "long-animation-frame", buffered: false }); });
-await cdp.send("Tracing.start", { traceConfig: { includedCategories: ["devtools.timeline", "disabled-by-default-devtools.timeline", "disabled-by-default-devtools.timeline.stack", "disabled-by-default-devtools.timeline.frame"] } });
-await go(art + 250); await page.waitForTimeout(4000);
-await cdp.send("Tracing.end"); await done;
-const loaf = await page.evaluate(() => window.__loaf.filter((e) => e.duration > 50).map((e) => ({ d: Math.round(e.duration), block: Math.round(e.blockingDuration), y: 0, scripts: e.scripts.filter(s=>s.duration>5).map((s) => `${Math.round(s.duration)}ms ${s.invoker} ${(s.sourceFunctionName||"")} ${s.sourceURL.split("/").pop()}`) })));
-console.log("Frames largos (>50ms, CPU 4x):", loaf.length); loaf.forEach((l) => console.log(" ", l.d + "ms", l.scripts.join(" | ")));
-const forced = events.filter((e) => (e.name === "Layout" || e.name === "UpdateLayoutTree") && e.dur > 2000 && e.args?.beginData?.stackTrace);
-console.log("Forzados >2ms:", forced.length, "total", Math.round(forced.reduce((a, e) => a + e.dur, 0) / 1000) + "ms");
-const by = {}; forced.forEach((e) => { const st = e.args.beginData.stackTrace; const f = st.find((f) => f.url.includes("_next") && !/1mb9|41c3/.test(f.url)) ?? st.at(-1); const k = `${f.functionName}@${f.columnNumber} ${f.url.split("/").pop()} ← ${st.slice(0,3).map(x=>x.functionName).join("<")}`; by[k] = (by[k] ?? 0) + e.dur / 1000; });
-Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 8).forEach(([k, v]) => console.log(`  ${v.toFixed(1)}ms  ${k}`));
-const tasks = events.filter((e) => e.name === "RunTask" && e.dur > 50000);
-console.log("Tareas >50ms:", tasks.map((e) => Math.round(e.dur / 1000) + "ms").join(", "));
+const browser = await chromium.launch({ headless: false });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await page.goto("http://127.0.0.1:3000/"); await page.waitForTimeout(4500);
+const c = page.locator("canvas").first(); const b = await c.boundingBox();
+const clip = { x: b.x + 300, y: b.y + 300, width: 260, height: 320 };
+await page.mouse.move(b.x + 250, b.y + 600, { steps: 3 }); await page.waitForTimeout(600);
+await c.screenshot({ path: "C:/Users/User/AppData/Local/Temp/claude/0d46e152d014b4f4/bdcdfe50-fe95-462d-a48e-e6f52ebfa8e5/scratchpad/h-0.png" });
+for (const [n, x, y] of [["peru", 412, 425], ["chile", 425, 600], ["colombia", 420, 365]]) {
+  await page.mouse.move(b.x + x, b.y + y, { steps: 3 }); await page.waitForTimeout(200);
+  await c.screenshot({ path: "C:/Users/User/AppData/Local/Temp/claude/0d46e152d014b4f4/bdcdfe50-fe95-462d-a48e-e6f52ebfa8e5/scratchpad/h-" + n + "-200ms.png" });
+}
 await browser.close();

@@ -77,6 +77,8 @@ type Props = {
 
 /** duración de la entrada: el globo se materializa de abajo hacia arriba */
 const INTRO_MS = 2400;
+/** el país elegido "se ve de frente" si su ciudad queda con z ≥ esto (1 = centro del globo) */
+const FACING = 0.55;
 /** sessionStorage: la entrada ya se vio en esta pestaña */
 const INTRO_KEY = "oriont:globe-intro";
 /** ancho (en radios) de la franja brillante justo bajo el frente de escaneo */
@@ -258,9 +260,13 @@ export default function Globe({ className = "", active = null, focus = null, onH
     let touch = false; // el último puntero fue un dedo/lápiz (no mouse)
     let hover = 0;
     let zoom = 0;
-    let focusZoom = 0;
-    let magCode: CountryCode | null = null; // país ampliado (se mantiene mientras la lupa se cierra)
-    const MAG = 0.25; // cuánto crece el país al pasar el cursor (0.25 → 1.25×)
+    // país elegido para el que ya se decidió si hay que girar (y si todavía está girando)
+    let turnFor: CountryCode | null = null;
+    let turning = false;
+    // cuánto está levantado cada país (0–1, en el orden de CODES): cada uno sube y baja por su
+    // cuenta, así al pasar de un país a otro el nuevo sube al tiro mientras el anterior baja
+    const lifts = new Float32Array(CODES.length);
+    const liftOf = (code: CountryCode) => lifts[CODES.indexOf(code)] ?? 0;
     const LIFT = 6; // px que se eleva el país al pasar el cursor
     let hovered: CountryCode | null = null;
     let raf = 0;
@@ -424,7 +430,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
       // dibujar a 30 fps se ve igual y deja la mitad de frames libres en el hilo principal.
       const { active: act, focus: foc } = live.current;
       const idle =
-        !introing && !sparks.length && !mouse && !dragging && !act && !foc && hover < 0.01 && zoom < 0.01 && focusZoom < 0.01 &&
+        !introing && !sparks.length && !mouse && !dragging && !act && !foc && hover < 0.01 && zoom < 0.01 &&
         Math.abs(velRot) < 1e-4 && Math.abs(velTilt) < 1e-4 && Math.abs(tilt - BASE_TILT) < 1e-3;
       // La entrada también va a 30 fps (si nadie interactúa): coincide con la carga e hidratación
       // de la página y a 60 fps duplicaba el trabajo del hilo principal sin verse distinto.
@@ -449,17 +455,28 @@ export default function Globe({ className = "", active = null, focus = null, onH
       let aligning = false;
       if (!dragging || !moved) {
         if (focused) {
-          // girar suavemente hacia el país seleccionado (por el camino más corto)
-          const targetRot = focused.view[1] * DEG;
-          let d = (targetRot - rot) % (Math.PI * 2);
-          if (d > Math.PI) d -= Math.PI * 2;
-          if (d < -Math.PI) d += Math.PI * 2;
-          aligning = Math.abs(d) > 0.15 || Math.abs(focused.view[0] * DEG - tilt) > 0.15;
-          rot += d * 0.07;
-          tilt += (focused.view[0] * DEG - tilt) * 0.07;
+          // Al elegir un país el mundo se queda quieto y solo se levanta el país (la lupa). Solo si
+          // el país no se ve bien de frente (se giró el globo a mano) gira hacia él primero, por el
+          // camino más corto, y se detiene al llegar.
+          if (focused.code !== turnFor) {
+            turnFor = focused.code;
+            const city = CITIES.find((c) => c.code === focused.code);
+            turning = !city || rotate(city.v).z < FACING;
+          }
+          if (turning) {
+            const targetRot = focused.view[1] * DEG;
+            let d = (targetRot - rot) % (Math.PI * 2);
+            if (d > Math.PI) d -= Math.PI * 2;
+            if (d < -Math.PI) d += Math.PI * 2;
+            aligning = Math.abs(d) > 0.15 || Math.abs(focused.view[0] * DEG - tilt) > 0.15;
+            rot += d * 0.07;
+            tilt += (focused.view[0] * DEG - tilt) * 0.07;
+            if (!aligning) turning = false;
+          }
           velRot = 0;
           velTilt = 0;
         } else if (!dragging) {
+          turnFor = null;
           velRot *= 0.95;
           velTilt *= 0.92;
           rot += velRot + (reduce ? 0 : dt * AUTO);
@@ -485,15 +502,17 @@ export default function Globe({ className = "", active = null, focus = null, onH
         oy = (dy / h) * 14;
       }
       hover += ((inside || dragging ? 1 : 0) - hover) * 0.08;
-      // Al cambiar de país la lupa no salta de uno a otro: primero baja el anterior y recién
-      // entonces sube el nuevo, y si es el seleccionado, solo cuando el globo ya llegó a él.
-      if (active && !magCode) magCode = active;
-      const zoomOn = !!active && active === magCode && !(aligning && focus === active);
-      zoom += ((zoomOn ? 1 : 0) - zoom) * 0.1;
-      // en pantallas chicas la tarjeta del país no cabe al lado: el globo se acerca al país elegido
-      focusZoom += ((focus && w < 640 * CANVAS_SCALE ? 1 : 0) - focusZoom) * 0.08;
-      const R = baseR * (1 + hover * 0.05) * (1 + focusZoom * 0.18); // en escritorio solo se amplía el país
-      if (zoom < 0.01) magCode = active;
+      // el país activo (cursor o elegido) sube rápido (~150 ms); si el globo todavía gira hacia
+      // el elegido, espera a que llegue
+      zoom = 0;
+      for (let ci = 0; ci < CODES.length; ci++) {
+        const on = CODES[ci] === active && !(aligning && focus === active);
+        lifts[ci] += ((on ? 1 : 0) - lifts[ci]) * 0.25;
+        if (lifts[ci] < 0.002) lifts[ci] = 0;
+        zoom = Math.max(zoom, lifts[ci]);
+      }
+      // el globo no cambia de tamaño con el cursor (antes crecía 5 %): solo se levanta el país
+      const R = baseR;
       const cx = w / 2 + ox;
       const cy = h / 2 + oy;
       const sx = (q: { nx: number }) => cx + q.nx * R;
@@ -650,35 +669,17 @@ export default function Globe({ className = "", active = null, focus = null, onH
           buf[inkLen[b]++] = y;
         }
       }
-      // lupa: el país seleccionado se agranda desde su centro, el resto del globo no cambia
-      let mcx = cx;
-      let mcy = cy;
-      const mi = magCode ? CODES.indexOf(magCode) : -1;
-      if (mi >= 0 && countryLen[mi]) {
-        const marr = countryBuf[mi];
-        const mlen = countryLen[mi];
-        mcx = 0;
-        mcy = 0;
-        for (let i = 0; i < mlen; i += 2) {
-          mcx += marr[i];
-          mcy += marr[i + 1];
-        }
-        mcx /= mlen / 2;
-        mcy /= mlen / 2;
-      }
-      const mk = zoom * MAG;
-      /** desplaza un punto de pantalla según la lupa; w = 1 dentro del país, 0 fuera */
-      const lens = (x: number, y: number, w: number): [number, number] => {
-        const f = 1 + mk * w;
-        return [mcx + (x - mcx) * f, mcy + (y - mcy) * f - zoom * LIFT * w];
-      };
+      // el país elegido o bajo el cursor se levanta unos píxeles, sin cambiar de tamaño (antes
+      // además crecía 1,25×, 1,5× en celular); el resto del globo no cambia
+      /** desplaza un punto de pantalla hacia arriba; w = 1 dentro del país, 0 fuera */
+      const lens = (x: number, y: number, w: number): [number, number] => [x, y - LIFT * w];
 
       // las ciudades también cuentan para el hover
       if (mouse && !moved) {
         for (const c of CITIES) {
           const q = rotate(c.v);
           if (q.z <= 0) continue;
-          const [x, y] = lens(sx(q), sy(q), c.code === magCode ? 1 : 0);
+          const [x, y] = lens(sx(q), sy(q), liftOf(c.code));
           if (Math.hypot(x - mouse.x, y - mouse.y) < (touch ? 32 : 16)) nearest = c.code;
         }
       }
@@ -713,21 +714,22 @@ export default function Globe({ className = "", active = null, focus = null, onH
         const s = ds * (isActive ? (small ? 1.4 : 1.75) : small ? 1.05 : 1.35);
         ctx.fillStyle = `rgba(${GLOW},${isActive ? (small ? 0.9 : 1) : dim ? 0.3 : small ? 0.6 : 0.85})`;
         ctx.beginPath();
-        if (code === magCode && mk > 0.001) {
-          const sm = s * (1 + mk * 0.8);
+        const z = lifts[ci];
+        if (z > 0) {
+          const sm = s;
           // sombra bajo el país elevado
           ctx.save();
-          ctx.fillStyle = `rgba(${LINE},${0.14 * zoom})`;
+          ctx.fillStyle = `rgba(${LINE},${0.14 * z})`;
           ctx.beginPath();
           for (let i = 0; i < len; i += 2) {
-            const [x, y] = lens(arr[i], arr[i + 1], 1);
-            ctx.rect(x - sm / 2 + zoom * 2, y - sm / 2 + zoom * LIFT * 1.2, sm, sm);
+            const [x, y] = lens(arr[i], arr[i + 1], z);
+            ctx.rect(x - sm / 2 + z * 2, y - sm / 2 + z * LIFT * 1.2, sm, sm);
           }
           ctx.fill();
           ctx.restore();
           ctx.beginPath();
           for (let i = 0; i < len; i += 2) {
-            const [x, y] = lens(arr[i], arr[i + 1], 1);
+            const [x, y] = lens(arr[i], arr[i + 1], z);
             ctx.rect(x - sm / 2, y - sm / 2, sm, sm);
           }
         } else {
@@ -900,8 +902,8 @@ export default function Globe({ className = "", active = null, focus = null, onH
           const lift = 1 + Math.sin(f * Math.PI) * arc.lift;
           const v = slerp(arc.a, arc.b, f);
           const q = rotate([v[0] * lift, v[1] * lift, v[2] * lift]);
-          const w = arc.codes[0] === magCode ? 1 - f : arc.codes[1] === magCode ? f : 0;
-          const [x, y] = lens(sx(q), sy(q), w * w);
+          const w = liftOf(arc.codes[0]) * (1 - f) ** 2 + liftOf(arc.codes[1]) * f ** 2;
+          const [x, y] = lens(sx(q), sy(q), w);
           pts.push({ ...q, x, y });
         }
         ctx.lineWidth = (touches ? 1.8 : 1.1) * (arc.main ? 1 : 0.8);
@@ -952,7 +954,7 @@ export default function Globe({ className = "", active = null, focus = null, onH
       for (const c of CITIES) {
         const q = rotate(c.v);
         if (q.z <= 0.05) continue;
-        const [x, y] = lens(sx(q), sy(q), c.code === magCode ? 1 : 0);
+        const [x, y] = lens(sx(q), sy(q), liftOf(c.code));
         const vis = Math.min(1, q.z * 3);
         const isActive = active === c.code;
         const hq = c.hq;
